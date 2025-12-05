@@ -51,7 +51,10 @@
         </div>
 
         <div class="card p-3">
-            <h4>庫存列表</h4>
+            <h4>庫存列表</h4><div class="table-responsive">
+    <table class="table table-hover text-nowrap">
+ 
+
             <table class="table table-hover">
                 <thead>
                     <tr>
@@ -79,7 +82,8 @@
                         </td>
                     </tr>
                 </tbody>
-            </table>
+            </table>       </table>
+</div>
         </div>
     </div>
 
@@ -159,6 +163,10 @@
 
         <div class="card p-3">
             <h4>費用歷史</h4>
+            <div class="table-responsive">
+    <table class="table table-hover text-nowrap">
+
+
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -176,7 +184,8 @@
                         <td><button @click="deleteBill(index)" class="btn btn-sm btn-danger">X</button></td>
                     </tr>
                 </tbody>
-            </table>
+            </table>        </table>
+</div>
         </div>
     </div>
 
@@ -388,7 +397,7 @@ createApp({
             reader.readAsText(file);
         }
     }
-});
+}).mount('#app');
 </script>
 </body>
 </html>
