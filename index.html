@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v5.6</title>
+    <title>好男人智慧家居 v5.7</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -36,7 +36,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.6</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.7</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存</a></li>
@@ -88,6 +88,12 @@
                     <button @click="selectedAI = 'chatgpt'" type="button" class="btn" :class="selectedAI === 'chatgpt' ? 'btn-success' : 'btn-outline-success'">ChatGPT</button>
                 </div>
 
+                <div v-if="selectedAI === 'grok'" class="alert alert-dark py-1 small">
+                    <i class="bi bi-exclamation-triangle-fill text-warning"></i> <b>Grok App 使用者注意：</b><br>
+                    Grok App 會在內部開啟連結，導致資料庫空白。<br>
+                    請在 Grok 複製 JSON 後，<b>手動切換 (App Switcher)</b> 回此瀏覽器貼上。
+                </div>
+
                 <button @click="copyAndOpenAI" class="btn w-100 text-white fw-bold py-2 mb-1" 
                     :class="{'btn-primary': selectedAI==='gemini', 'btn-dark': selectedAI==='grok', 'btn-success': selectedAI==='chatgpt'}">
                     <i class="bi bi-box-arrow-up-right"></i> 複製指令並開啟 {{ selectedAI.charAt(0).toUpperCase() + selectedAI.slice(1) }}
@@ -119,6 +125,27 @@
         <div class="card p-3"><h5>💾 資料庫管理</h5><div class="row g-2 mb-3"><div class="col-6"><button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 p-2"><i class="bi bi-filetype-json fs-4"></i><br><span class="small">完整備份</span></button></div><div class="col-6"><button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 p-2"><i class="bi bi-filetype-csv fs-4"></i><br><span class="small">庫存 CSV</span></button></div></div><label class="form-label fw-bold">📥 匯入資料</label><input type="file" @change="importData" class="form-control" accept=".json,.csv"></div>
     </div>
 
+    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> 警告：資料庫空白！</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="fw-bold">您現在可能是在 App (Grok/FB/Line) 的內部瀏覽器中。</p>
+                    <p>基於安全限制，這裡無法讀取您原本儲存的資料。</p>
+                    <div class="alert alert-warning">
+                        請點擊右下角/右上角的瀏覽器圖示 🧭<br>
+                        選擇 <b>「在 Safari 開啟」</b> 或 <b>「在 Chrome 開啟」</b> 以找回您的資料。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="showLostDataWarning = false" class="btn btn-secondary">我了解，僅此次關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
     <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div class="small text-muted" v-if="viewingOrder.refNumber">單號: {{ viewingOrder.refNumber }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr v-if="viewingOrder.discount > 0"><td colspan="2" class="text-end text-muted">折扣:</td><td class="text-end pe-3 text-muted">- ${{ viewingOrder.discount }}</td></tr><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
     <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
@@ -131,10 +158,9 @@ createApp({
     data() {
         return {
             currentTab: 'pricewatch', geminiMode: 'app', apiKey: '', searchQuery: '',
-            selectedAI: 'gemini', // New for v5.6
-            inventory: [], expenses: [], selectedIds: [],
+            selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [],
             
-            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false,
+            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false,
             exportActionType: '', editingForm: {}, viewingOrder: {},
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null, isWaitingForPaste: false,
 
@@ -178,9 +204,16 @@ createApp({
     mounted() { 
         this.loadData(); this.selectedStore = this.currentCompanyOptions[0] || 'other';
         const params = new URLSearchParams(window.location.search);
+        
+        // --- v5.7 WebView 偵測 (資料防遺失機制) ---
         if (params.get('tab') === 'pricewatch') {
             this.currentTab = 'pricewatch'; this.geminiMode = 'app'; this.isWaitingForPaste = true;
             this.$nextTick(() => { if (this.$refs.pasteArea) { this.$refs.pasteArea.focus(); window.history.replaceState({}, document.title, window.location.pathname); } });
+            
+            // 關鍵檢查：如果網址有 autoPaste 但資料庫是空的，代表跑進了 WebView
+            if (this.inventory.length === 0 && this.expenses.length === 0) {
+                this.showLostDataWarning = true;
+            }
         }
     },
     methods: {
@@ -190,15 +223,19 @@ createApp({
         isSelected(item) { return this.selectedIds.includes(item.id); }, toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); }, selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
         prepareExport(type) { this.exportActionType = type; this.showExportModal = true; }, confirmExport(format) { this.showExportModal = false; let text = ""; if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n'); else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name} [${i.brand||''}] | $${i.latestPrice||'-'}`).join('\n'); else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n'); if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`; else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); } else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製')); },
         
-        // --- Multi-AI Integration (v5.6) ---
         copyAndOpenAI() {
             const userText = this.pastedText || "（請自行辨識圖片或文字）";
             const returnUrl = window.location.href.split('?')[0] + "?tab=pricewatch&autoPaste=true";
             
-            // Determine Target URL
             let targetUrl = 'https://gemini.google.com/app';
             if (this.selectedAI === 'grok') targetUrl = 'https://x.com/i/grok';
             if (this.selectedAI === 'chatgpt') targetUrl = 'https://chatgpt.com/';
+
+            // 針對 Grok 的特別 Prompt：提醒使用者手動切換
+            let extraInstruction = "";
+            if (this.selectedAI === 'grok') {
+                extraInstruction = `\n(⚠️ 注意：如果你是在 App 中使用，請生成完 JSON 後，提醒我手動切換回瀏覽器貼上，不要點擊下方的連結)\n`;
+            }
 
             const prompt = `你現在是我的「家居庫存資料整理員」。
 請將我提供的商品內容轉換為 JSON 格式。
@@ -206,7 +243,7 @@ createApp({
 1. 輸出格式：嚴格只輸出 JSON Array (代碼塊) [...]，不要其他文字。
 2. 欄位：name, brand, categoryId, latestPrice (數字), unitPrice (如 2/包), url
 3. 分類ID表：10:食品, 20:飲品, 30:清潔, 40:護理, 50:衛生, 60:廚房, 70:藥品, 99:其他
-
+${extraInstruction}
 非常重要：請在 JSON 輸出結束後，新起一行，附上這個返回連結：
 [↩️ 點擊這裡返回系統匯入](${returnUrl})
 
