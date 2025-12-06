@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居庫存 v4.1</title>
+    <title>好男人智慧家居庫存 v4.2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -13,19 +13,19 @@
         .nav-link.active { background-color: #0d6efd !important; color: white !important; }
         [v-cloak] { display: none; }
         .table-responsive { overflow-x: auto; }
-        /* 表格垂直置中 */
         .table > tbody > tr > td { vertical-align: middle; }
         
-        /* 標籤樣式 */
         .category-tag { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; color: #666; display: inline-block; margin-right: 4px; white-space: nowrap;}
         .brand-tag { font-size: 0.7rem; padding: 2px 6px; background: #e3f2fd; border-radius: 4px; color: #0d6efd; display: inline-block; white-space: nowrap;}
         
-        /* 物品名稱優化：允許換行 */
         .item-name { font-weight: 600; font-size: 1rem; line-height: 1.4; word-break: break-word; white-space: normal; }
-        
-        .price-tag { font-size: 0.9rem; color: #198754; font-weight: bold; }
-        .unit-price { font-size: 0.75rem; color: #888; }
+        .price-tag { font-size: 0.9rem; color: #198754; font-weight: bold; display: inline-flex; align-items: center; }
+        .unit-price { font-size: 0.75rem; color: #888; margin-left: 4px; font-weight: normal;}
         .history-btn { font-size: 0.75rem; text-decoration: none; border-bottom: 1px dashed #999; color: #666; cursor: pointer; white-space: nowrap;}
+        
+        /* 連結圖示樣式 */
+        .link-icon { color: #0d6efd; margin-left: 6px; font-size: 0.9rem; transition: transform 0.2s; }
+        .link-icon:hover { transform: scale(1.2); color: #0a58ca; }
 
         /* 浮動操作列 */
         .floating-bar {
@@ -49,7 +49,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居庫存 v4.1</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居庫存 v4.2</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存管理</a></li>
@@ -90,14 +90,17 @@
                                 <div class="item-name">{{ item.name }}</div>
                                 
                                 <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
-                                    <span v-if="item.latestPrice" class="price-tag">
-                                        ${{ item.latestPrice }} 
+                                    <span class="price-tag">
+                                        {{ item.latestPrice ? '$'+item.latestPrice : '-' }}
                                         <span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span>
+                                        
+                                        <a v-if="item.url" :href="item.url" target="_blank" class="link-icon" @click.stop title="前往網店">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
                                     </span>
-                                    <span v-else class="text-muted small">-</span>
-                                    
+
                                     <span v-if="item.priceHistory && item.priceHistory.length > 0" 
-                                          @click.stop="viewHistory(item)" class="history-btn">
+                                          @click.stop="viewHistory(item)" class="history-btn ms-2">
                                         <i class="bi bi-graph-down"></i> 走勢
                                     </span>
                                 </div>
@@ -191,8 +194,28 @@
             <button @click="saveSettings" class="btn btn-success w-100">儲存</button>
         </div>
         <div class="card p-3">
-            <button @click="exportData" class="btn btn-outline-primary w-100 mb-2">匯出備份 JSON</button>
-            <input type="file" @change="importData" class="form-control">
+            <h5>💾 資料庫管理</h5>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2">
+                        <i class="bi bi-filetype-json fs-4"></i>
+                        <span class="small">完整備份 (.json)</span>
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2">
+                        <i class="bi bi-filetype-csv fs-4"></i>
+                        <span class="small">庫存清單 (.csv)</span>
+                    </button>
+                </div>
+            </div>
+            
+            <label class="form-label fw-bold">📥 匯入資料 (JSON / CSV)</label>
+            <input type="file" @change="importData" class="form-control" accept=".json,.csv,.txt">
+            <div class="form-text small">
+                支援 CSV 格式 (逗號或 Tab 分隔)。<br>
+                CSV 匯入將視為「批量更新」(若 ID/名稱相同則覆蓋，不同則新增)。
+            </div>
         </div>
     </div>
 
@@ -279,22 +302,12 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            currentTab: 'inventory',
-            apiKey: '',
-            searchQuery: '',
-            inventory: [],
-            expenses: [],
-            selectedIds: [],
-            
-            // UI Controls
+            currentTab: 'inventory', apiKey: '', searchQuery: '',
+            inventory: [], expenses: [], selectedIds: [],
             showAddModal: false, showEditModal: false, showHistoryModal: false, showExportModal: false,
-            exportActionType: '', // 'whatsapp', 'share', 'copy'
-            editingForm: {}, historyItem: {},
-            
-            // Gemini
+            exportActionType: '', editingForm: {}, historyItem: {},
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null,
             newExpense: { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: '', note: '' },
-            
             categories: [
                 { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' },
                 { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' }
@@ -338,42 +351,18 @@ createApp({
         },
         selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
 
-        // --- 匯出功能 (New v4.1) ---
-        prepareExport(type) {
-            this.exportActionType = type;
-            this.showExportModal = true;
-        },
+        // --- Export Actions ---
+        prepareExport(type) { this.exportActionType = type; this.showExportModal = true; },
         confirmExport(format) {
             this.showExportModal = false;
             let text = "";
-            
-            if (format === 'buy') {
-                text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n');
-            } else if (format === 'inventory') {
-                text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name}\n  [${i.brand||'無'}] 庫存:${i.stock} | $${i.latestPrice||'-'} (${i.unitPrice||'-'})`).join('\n');
-            } else if (format === 'links') {
-                text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n');
-            }
+            if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n');
+            else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name}\n  [${i.brand||'無'}] 庫存:${i.stock} | $${i.latestPrice||'-'} (${i.unitPrice||'-'})`).join('\n');
+            else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n');
 
-            if (this.exportActionType === 'whatsapp') {
-                window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
-            } else if (this.exportActionType === 'share') {
-                if (navigator.share) navigator.share({title:'庫存分享', text:text});
-                else alert("不支援分享");
-            } else if (this.exportActionType === 'copy') {
-                navigator.clipboard.writeText(text).then(()=>alert('已複製到剪貼簿'));
-            }
-        },
-
-        actionDelete() {
-            if(!confirm('刪除選取項目？')) return;
-            this.inventory = this.inventory.filter(i => !this.selectedIds.includes(i.id));
-            this.selectedIds = []; this.saveData();
-        },
-        actionEdit() {
-            if(this.selectedItems.length!==1) return;
-            this.editingForm = JSON.parse(JSON.stringify(this.selectedItems[0]));
-            this.showEditModal = true;
+            if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+            else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); }
+            else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製'));
         },
 
         // --- CRUD ---
@@ -384,12 +373,10 @@ createApp({
             if (this.showEditModal) {
                 const idx = this.inventory.findIndex(i => i.id === this.editingForm.id);
                 if (idx !== -1) {
-                    // History check
                     if (this.inventory[idx].latestPrice && this.inventory[idx].latestPrice != this.editingForm.latestPrice) {
                          if(!this.inventory[idx].priceHistory) this.inventory[idx].priceHistory = [];
                          this.inventory[idx].priceHistory.push({date: new Date().toISOString().split('T')[0], price: this.inventory[idx].latestPrice});
                     }
-                    // 保留 history
                     this.editingForm.priceHistory = this.inventory[idx].priceHistory;
                     this.inventory[idx] = { ...this.editingForm };
                 }
@@ -398,6 +385,16 @@ createApp({
                 this.inventory.push({ ...this.editingForm, priceHistory: [] });
             }
             this.saveData(); this.closeModal(); this.selectedIds = [];
+        },
+        actionDelete() {
+            if(!confirm('刪除選取項目？')) return;
+            this.inventory = this.inventory.filter(i => !this.selectedIds.includes(i.id));
+            this.selectedIds = []; this.saveData();
+        },
+        actionEdit() {
+            if(this.selectedItems.length!==1) return;
+            this.editingForm = JSON.parse(JSON.stringify(this.selectedItems[0]));
+            this.showEditModal = true;
         },
         updateStock(item, change) { item.stock = Math.max(0, (item.stock||0)+change); this.saveData(); },
         viewHistory(item) { this.historyItem = item; this.showHistoryModal = true; },
@@ -412,9 +409,9 @@ createApp({
         deleteExpense(idx) { if(confirm('刪除紀錄？')) { this.expenses.splice(idx, 1); this.saveData(); } },
         exportExpenseCSV() {
             let csv = "\uFEFF日期,類別,金額,備註\n";
-            this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},${e.amount},"${e.note||''}"\n`);
+            this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},${e.amount},"${String(e.note||'').replace(/"/g,'""')}"\n`);
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-            a.download = "expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
+            a.download = "family_expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
         },
 
         // --- Gemini ---
@@ -422,12 +419,7 @@ createApp({
             try {
                 const list = JSON.parse(this.importJsonText);
                 if(Array.isArray(list)) {
-                    list.forEach(i => {
-                        i.id = Date.now() + Math.random().toString(36).substr(2,5);
-                        i.stock = 0;
-                        if(!i.priceHistory) i.priceHistory = [];
-                        if(!i.brand) i.brand = '';
-                    });
+                    list.forEach(i => { i.id = Date.now() + Math.random().toString(36).substr(2,5); i.stock = 0; if(!i.priceHistory) i.priceHistory=[]; });
                     this.inventory.push(...list);
                     this.importJsonText = ''; this.saveData(); alert(`匯入 ${list.length} 筆`);
                 }
@@ -437,7 +429,7 @@ createApp({
             if(!this.pastedText || !this.apiKey) return alert('請填寫');
             this.isAnalyzing = true;
             try {
-                const prompt = `分析商品文字: "${this.pastedText}"，回傳JSON: {"price": 數字, "unitPrice": "簡短單價如 2.5/包", "brand": "品牌"}`;
+                const prompt = `分析商品文字: "${this.pastedText}"，回傳JSON: {"price": 數字, "unitPrice": "簡短單價", "brand": "品牌"}`;
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
                 });
@@ -449,27 +441,123 @@ createApp({
                      if(!item.priceHistory) item.priceHistory = [];
                      item.priceHistory.push({date: new Date().toISOString().split('T')[0], price: item.latestPrice});
                 }
-                item.latestPrice = result.price;
-                item.unitPrice = result.unitPrice; // 更新單價
-                item.brand = result.brand || item.brand;
-                
+                item.latestPrice = result.price; item.unitPrice = result.unitPrice; item.brand = result.brand || item.brand;
                 this.saveData(); alert(`更新: $${result.price}`);
             } catch(e) { alert('分析失敗'); } finally { this.isAnalyzing = false; }
         },
-        // Backup
-        exportData() {
-            const a = document.createElement('a'); 
-            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey }));
-            a.download = "good_husband_backup.json"; document.body.appendChild(a); a.click(); a.remove();
+
+        // --- 總資料庫輸出/輸入 (New Feature) ---
+        exportData(type) {
+            if (type === 'json') {
+                const data = JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey });
+                const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(data);
+                a.download = "good_husband_backup.json"; document.body.appendChild(a); a.click(); a.remove();
+            } else if (type === 'csv') {
+                // BOM for Excel
+                let csv = "\uFEFFid,分類ID,品牌,名稱,庫存,價格,單價備註,ISBN,網址\n";
+                this.inventory.forEach(i => {
+                    // Handle comma inside fields by quoting
+                    const row = [
+                        i.id, i.categoryId, i.brand, i.name, i.stock, i.latestPrice, i.unitPrice, i.isbn, i.url
+                    ].map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(',');
+                    csv += row + "\n";
+                });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+                a.download = "inventory_list.csv"; document.body.appendChild(a); a.click(); a.remove();
+            }
         },
         importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
+            
             reader.onload = (evt) => {
-                const p = JSON.parse(evt.target.result);
-                this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || '';
-                this.saveData(); alert('還原成功');
+                const content = evt.target.result;
+                
+                // Case 1: JSON Import (完整備份)
+                if (file.name.endsWith('.json')) {
+                    try {
+                        const p = JSON.parse(content);
+                        this.inventory = p.inventory || [];
+                        this.expenses = p.expenses || [];
+                        this.apiKey = p.apiKey || '';
+                        this.saveData(); alert('完整備份還原成功！');
+                    } catch(err) { alert('JSON 格式錯誤'); }
+                    return;
+                }
+                
+                // Case 2: CSV/TXT Import (庫存更新)
+                // 簡易 CSV 解析器：支援逗號或 Tab
+                const lines = content.trim().split(/\r?\n/);
+                if (lines.length < 2) return alert('檔案內容過短');
+                
+                // 自動偵測分隔符號 (看第一行有沒有 Tab)
+                const delimiter = lines[0].indexOf('\t') !== -1 ? '\t' : ',';
+                // 移除 BOM 與引號
+                const headers = lines[0].replace(/^\uFEFF/, '').split(delimiter).map(h => h.replace(/^"|"$/g, '').trim());
+                
+                let count = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    // 處理引號內的逗號 (簡易版 regex split)
+                    // 如果是 tab 分隔通常比較簡單，如果是逗號要小心
+                    let values = [];
+                    if (delimiter === '\t') {
+                        values = line.split('\t').map(v => v.replace(/^"|"$/g, '').trim());
+                    } else {
+                        // Comma regex logic for "field1","field,2"
+                        values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                        // Fallback simple split if regex fails or simple CSV
+                        if (values.length === 0) values = line.split(',');
+                        values = values.map(v => v.replace(/^"|"$/g, '').replace(/""/g, '"').trim());
+                    }
+
+                    // Mapping headers to object
+                    let item = {};
+                    headers.forEach((h, index) => {
+                        // 簡易 Mapping: 對應 export 的中文 header 或 key
+                        let key = '';
+                        if (h.includes('id')) key = 'id';
+                        else if (h.includes('分類')) key = 'categoryId';
+                        else if (h.includes('品牌')) key = 'brand';
+                        else if (h.includes('名稱')) key = 'name';
+                        else if (h.includes('庫存')) key = 'stock';
+                        else if (h.includes('價格')) key = 'latestPrice';
+                        else if (h.includes('單價')) key = 'unitPrice';
+                        else if (h.includes('ISBN')) key = 'isbn';
+                        else if (h.includes('網址')) key = 'url';
+                        
+                        if (key && values[index] !== undefined) item[key] = values[index];
+                    });
+
+                    // Update or Add
+                    if (item.id) {
+                        const idx = this.inventory.findIndex(inv => inv.id === item.id);
+                        if (idx !== -1) {
+                            // Update existing
+                            Object.assign(this.inventory[idx], item);
+                        } else {
+                            // New with ID
+                            if(!item.categoryId) item.categoryId = '99';
+                             if(!item.priceHistory) item.priceHistory = [];
+                            this.inventory.push(item);
+                        }
+                    } else if (item.name) {
+                        // No ID but has Name -> Treat as new
+                        item.id = Date.now() + Math.random().toString(36).substr(2,5);
+                        if(!item.categoryId) item.categoryId = '99';
+                        if(!item.priceHistory) item.priceHistory = [];
+                        this.inventory.push(item);
+                    }
+                    count++;
+                }
+                this.saveData();
+                alert(`CSV 匯入完成：處理了 ${count} 筆資料`);
             };
-            reader.readAsText(e.target.files[0]);
+            
+            reader.readAsText(file);
         }
     }
 }).mount('#app');
