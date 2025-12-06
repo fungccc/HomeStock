@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v5.3</title>
+    <title>好男人智慧家居 v5.4</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -30,15 +30,19 @@
         .cart-item { background: #fdfdfe; border-bottom: 1px solid #eee; padding: 8px; font-size: 0.9rem; }
         .cart-summary { background-color: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; }
         
-        /* Tab 切換樣式 */
-        .mode-switch .btn { border-radius: 20px; }
-        .mode-switch .btn.active { background-color: #ffc107; border-color: #ffc107; color: black; }
+        /* 貼上區域的高亮動畫 */
+        @keyframes pulse-yellow {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); border-color: #ffc107; }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); border-color: #ffc107; }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        .highlight-paste-area { animation: pulse-yellow 2s infinite; border: 2px solid #ffc107 !important; }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.3</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.4</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存</a></li>
@@ -95,81 +99,38 @@
                 <div class="col-6"><label class="small text-muted">日期</label><input v-model="newExpense.date" type="date" class="form-control"></div>
                 <div class="col-6"><label class="small text-muted">類別</label><select v-model="newExpense.category" class="form-select" @change="onCategoryChange"><option v-for="(brands, cat) in companyDB" :value="cat">{{ cat }}</option><option value="其他">其他</option></select></div>
                 <div class="col-12"><label class="small text-muted">店鋪 / 公司</label><div class="input-group"><select v-model="selectedStore" class="form-select"><option v-for="store in currentCompanyOptions" :value="store">{{ store }}</option><option value="other">＋ 新增...</option></select><input v-if="selectedStore === 'other'" v-model="customStoreInput" type="text" class="form-control" placeholder="輸入名稱"></div></div>
-                
-                <div v-if="isShoppingCategory" class="col-12 mt-2">
-                    <div class="bg-light p-2 rounded border">
-                        <label class="small fw-bold mb-1"><i class="bi bi-bag"></i> 購物明細</label>
-                        <div class="input-group mb-2">
-                            <select v-model="selectedInventoryItem" class="form-select"><option :value="null">-- 從庫存選擇 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select>
-                            <input v-model.number="tempQty" type="number" class="form-control" placeholder="量" style="max-width: 60px;" min="1">
-                            <button @click="addCartItem" class="btn btn-primary" :disabled="!selectedInventoryItem">加入</button>
-                        </div>
-                        <div v-if="newExpense.items && newExpense.items.length > 0">
-                            <div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center">
-                                <div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div>
-                                <div class="text-end" style="min-width: 60px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 mt-2">
-                     <div class="cart-summary border p-2 rounded bg-white">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-5"><label class="small text-muted">折扣優惠</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div>
-                            <div class="col-7 text-end"><label class="small text-muted d-block">實付金額</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-5"></div>
-                        </div>
-                    </div>
-                </div>
+                <div v-if="isShoppingCategory" class="col-12 mt-2"><div class="bg-light p-2 rounded border"><label class="small fw-bold mb-1"><i class="bi bi-bag"></i> 購物明細</label><div class="input-group mb-2"><select v-model="selectedInventoryItem" class="form-select"><option :value="null">-- 從庫存選擇 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select><input v-model.number="tempQty" type="number" class="form-control" placeholder="量" style="max-width: 60px;" min="1"><button @click="addCartItem" class="btn btn-primary" :disabled="!selectedInventoryItem">加入</button></div><div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 60px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div></div></div></div></div>
+                <div class="col-12 mt-2"><div class="cart-summary border p-2 rounded bg-white"><div class="row g-2 align-items-center"><div class="col-5"><label class="small text-muted">折扣優惠</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div><div class="col-7 text-end"><label class="small text-muted d-block">實付金額</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-5"></div></div></div></div>
                 <div class="col-12"><label class="small text-muted">備註/單號</label><input v-model="newExpense.refNumber" class="form-control" placeholder="選填"></div>
                 <div class="col-12 mt-3"><button @click="saveExpense" class="btn w-100" :class="isEditingExpense ? 'btn-warning' : 'btn-primary'">{{ isEditingExpense ? '更新紀錄' : '儲存紀錄' }}</button></div>
             </div>
         </div>
-        <div class="card p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">紀錄列表</h5><button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> CSV</button></div>
-            <div class="table-responsive">
-                <table class="table table-striped table-sm text-nowrap align-middle">
-                    <thead><tr><th>日期</th><th>類別/公司</th><th>金額</th><th>操作</th></tr></thead>
-                    <tbody>
-                        <tr v-for="(exp, index) in sortedExpenses" :key="index">
-                            <td><div>{{ exp.date }}</div></td>
-                            <td><span class="badge bg-light text-dark border">{{ exp.category }}</span><div class="fw-bold text-primary small mt-1">{{ exp.note }}</div></td>
-                            <td class="fw-bold">${{ exp.amount }}</td>
-                            <td><button v-if="exp.items && exp.items.length > 0" @click="viewOrderDetails(exp)" class="btn btn-xs btn-outline-info me-1"><i class="bi bi-file-text"></i></button><button @click="editExpenseDirectly(exp)" class="btn btn-xs btn-outline-secondary me-1"><i class="bi bi-pencil"></i></button><i @click="deleteExpense(index)" class="bi bi-x-circle text-danger" style="cursor:pointer"></i></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <div class="card p-3"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">紀錄列表</h5><button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> CSV</button></div><div class="table-responsive"><table class="table table-striped table-sm text-nowrap align-middle"><thead><tr><th>日期</th><th>類別/公司</th><th>金額</th><th>操作</th></tr></thead><tbody><tr v-for="(exp, index) in sortedExpenses" :key="index"><td><div>{{ exp.date }}</div></td><td><span class="badge bg-light text-dark border">{{ exp.category }}</span><div class="fw-bold text-primary small mt-1">{{ exp.note }}</div></td><td class="fw-bold">${{ exp.amount }}</td><td><button v-if="exp.items && exp.items.length > 0" @click="viewOrderDetails(exp)" class="btn btn-xs btn-outline-info me-1"><i class="bi bi-file-text"></i></button><button @click="editExpenseDirectly(exp)" class="btn btn-xs btn-outline-secondary me-1"><i class="bi bi-pencil"></i></button><i @click="deleteExpense(index)" class="bi bi-x-circle text-danger" style="cursor:pointer"></i></td></tr></tbody></table></div></div>
     </div>
 
     <div v-if="currentTab === 'pricewatch'">
         <div class="d-flex justify-content-center mb-3 mode-switch">
-            <button class="btn btn-sm me-2" :class="geminiMode === 'app' ? 'btn-secondary' : 'btn-outline-secondary'" @click="geminiMode = 'app'">📱 App 輔助模式</button>
-            <button class="btn btn-sm" :class="geminiMode === 'api' ? 'btn-success' : 'btn-outline-success'" @click="geminiMode = 'api'">🔑 API 自動模式</button>
+            <button class="btn btn-sm me-2" :class="geminiMode === 'app' ? 'btn-secondary' : 'btn-outline-secondary'" @click="geminiMode = 'app'">📱 App 閉環模式</button>
+            <button class="btn btn-sm" :class="geminiMode === 'api' ? 'btn-success' : 'btn-outline-success'" @click="geminiMode = 'api'">🔑 API 模式</button>
         </div>
 
         <div v-if="geminiMode === 'app'">
             <div class="card p-3 border-info">
-                <h5 class="text-info-emphasis"><i class="bi bi-phone"></i> Gemini App 流程</h5>
-                <ol class="small ps-3 text-muted">
-                    <li>在下方輸入/貼上雜亂的商品文字。</li>
-                    <li>點擊「複製提示詞」 (已包含指令)。</li>
-                    <li>切換到 Gemini App 貼上並發送。</li>
-                    <li>複製 App 回傳的 JSON，回來貼上「匯入」。</li>
-                </ol>
+                <h5 class="text-info-emphasis"><i class="bi bi-phone"></i> 步驟 1: 輸入與跳轉</h5>
+                <p class="small text-muted mb-2">在此貼上雜亂的商品文字，點擊按鈕後會<b>自動複製指令並開啟 Gemini</b>。</p>
+                <textarea v-model="pastedText" class="form-control mb-3" rows="3" placeholder="例如: 百佳 唯他奶 $20 六包..."></textarea>
                 
-                <textarea v-model="pastedText" class="form-control mb-2" rows="3" placeholder="在此貼上商品文字 (如: 惠康特價 檸檬茶 $20...)"></textarea>
-                
-                <div class="d-grid gap-2">
-                    <button @click="copyPromptForApp" class="btn btn-primary"><i class="bi bi-clipboard-check"></i> 1. 複製提示詞</button>
-                    <a href="https://gemini.google.com/app" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-up-right"></i> 2. 開啟 Gemini (網頁版)</a>
-                </div>
+                <button @click="copyAndOpenGemini" class="btn btn-info w-100 text-white fw-bold py-2">
+                    <i class="bi bi-box-arrow-up-right"></i> 複製指令並開啟 Gemini
+                </button>
             </div>
 
-            <div class="card p-3 border-warning mt-3">
-                <h5 class="text-warning-emphasis"><i class="bi bi-box-arrow-in-down"></i> 3. 貼上結果匯入</h5>
-                <textarea v-model="importJsonText" class="form-control mb-2" rows="3" placeholder="在此貼上 Gemini 回傳的 JSON..."></textarea>
+            <div class="card p-3 border-warning mt-3" :class="{ 'highlight-paste-area': isWaitingForPaste }">
+                <h5 class="text-warning-emphasis">
+                    <i class="bi bi-box-arrow-in-down"></i> 步驟 2: 回來貼上
+                    <span v-if="isWaitingForPaste" class="badge bg-danger ms-2">請在此貼上 JSON</span>
+                </h5>
+                <textarea ref="pasteArea" v-model="importJsonText" class="form-control mb-2" rows="3" placeholder="在此貼上 Gemini 回傳的 JSON (複製後點擊 Gemini 提供的連結會自動跳回來)"></textarea>
                 <button @click="importFromJSON" class="btn btn-warning w-100">匯入系統</button>
             </div>
         </div>
@@ -177,11 +138,7 @@
         <div v-if="geminiMode === 'api'">
             <div class="card p-3" :class="{ loading: isAnalyzing }">
                 <h5>🤖 API 自動分析器</h5>
-                <div class="small text-muted mb-2">需設定 API Key，適合快速更新單一物品價格。</div>
-                <select v-model="selectedItemForAnalysis" class="form-select mb-2">
-                    <option :value="null">-- 選擇現有物品更新 --</option>
-                    <option v-for="item in inventory" :value="item">{{ item.name }}</option>
-                </select>
+                <select v-model="selectedItemForAnalysis" class="form-select mb-2"><option :value="null">-- 選擇現有物品更新 --</option><option v-for="item in inventory" :value="item">{{ item.name }}</option></select>
                 <textarea v-model="pastedText" class="form-control mb-2" rows="3" placeholder="貼上網頁文字..."></textarea>
                 <button @click="analyzePrice" class="btn btn-success w-100" :disabled="!apiKey">API 分析並更新</button>
             </div>
@@ -191,58 +148,19 @@
     <div v-if="currentTab === 'settings'">
         <div class="card p-3 mb-3">
             <h5>🔑 Gemini API Key</h5>
-            <input v-model="apiKey" type="password" class="form-control mb-2" placeholder="API Key (使用 API 模式才需要)">
+            <input v-model="apiKey" type="password" class="form-control mb-2" placeholder="API Key">
             <button @click="saveSettings" class="btn btn-success w-100">儲存</button>
         </div>
         <div class="card p-3">
             <h5>💾 資料庫管理</h5>
-            <div class="row g-2 mb-3">
-                <div class="col-6"><button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 p-2"><i class="bi bi-filetype-json fs-4"></i><br><span class="small">完整備份</span></button></div>
-                <div class="col-6"><button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 p-2"><i class="bi bi-filetype-csv fs-4"></i><br><span class="small">庫存 CSV</span></button></div>
-            </div>
-            <label class="form-label fw-bold">📥 匯入資料</label>
-            <input type="file" @change="importData" class="form-control" accept=".json,.csv">
+            <div class="row g-2 mb-3"><div class="col-6"><button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 p-2"><i class="bi bi-filetype-json fs-4"></i><br><span class="small">完整備份</span></button></div><div class="col-6"><button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 p-2"><i class="bi bi-filetype-csv fs-4"></i><br><span class="small">庫存 CSV</span></button></div></div>
+            <label class="form-label fw-bold">📥 匯入資料</label><input type="file" @change="importData" class="form-control" accept=".json,.csv">
         </div>
     </div>
 
-    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div>
-                <div class="modal-body d-grid gap-2">
-                    <button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button>
-                    <button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button>
-                    <button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div>
-                <div class="modal-body p-0">
-                    <div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div class="small text-muted" v-if="viewingOrder.refNumber">單號: {{ viewingOrder.refNumber }}</div></div>
-                    <table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr v-if="viewingOrder.discount > 0"><td colspan="2" class="text-end text-muted">折扣:</td><td class="text-end pe-3 text-muted">- ${{ viewingOrder.discount }}</td></tr><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table>
-                    <div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div>
-                <div class="modal-body">
-                    <div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div>
-                    <div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div>
-                    <div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model="editingForm.unitPrice" class="form-control"></div></div>
-                    <div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div>
-                </div>
-                <div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div>
-            </div>
-        </div>
-    </div>
+    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
+    <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div class="small text-muted" v-if="viewingOrder.refNumber">單號: {{ viewingOrder.refNumber }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr v-if="viewingOrder.discount > 0"><td colspan="2" class="text-end text-muted">折扣:</td><td class="text-end pe-3 text-muted">- ${{ viewingOrder.discount }}</td></tr><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
+    <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
 </div>
 
 <script>
@@ -251,15 +169,16 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            currentTab: 'pricewatch', // 預設打開格價頁面方便測試
-            geminiMode: 'app', // 預設為 App 模式
+            currentTab: 'pricewatch', // Default to pricewatch for new flow testing
+            geminiMode: 'app', 
             apiKey: '', searchQuery: '',
             inventory: [], expenses: [], selectedIds: [],
             
             showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false,
             exportActionType: '', editingForm: {}, viewingOrder: {},
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null,
-            
+            isWaitingForPaste: false, // 控制貼上區閃爍
+
             newExpense: { date: new Date().toISOString().split('T')[0], category: '超級市場', amount: 0, note: '', refNumber: '', items: [], discount: 0 },
             selectedInventoryItem: null, tempQty: 1, selectedStore: '', customStoreInput: '',
             isEditingExpense: false, editingExpenseIndex: -1,
@@ -290,161 +209,71 @@ createApp({
         };
     },
     computed: {
-        filteredInventory() {
-            const query = this.searchQuery.toLowerCase().trim();
-            if (!query) return this.inventory;
-            return this.inventory.filter(item => {
-                const matchName = item.name.toLowerCase().includes(query);
-                const matchBrand = item.brand && item.brand.toLowerCase().includes(query);
-                return matchName || matchBrand;
-            });
-        },
+        filteredInventory() { const query = this.searchQuery.toLowerCase().trim(); if (!query) return this.inventory; return this.inventory.filter(item => { const matchName = item.name.toLowerCase().includes(query); const matchBrand = item.brand && item.brand.toLowerCase().includes(query); return matchName || matchBrand; }); },
         selectedItems() { return this.inventory.filter(item => this.selectedIds.includes(item.id)); },
         sortedExpenses() { return this.expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); },
         currentCompanyOptions() { return this.companyDB[this.newExpense.category] || []; },
         isShoppingCategory() { return ['超級市場', '網購', '飲食'].includes(this.newExpense.category); }
     },
-    watch: {
-        'newExpense.items': { handler() { this.updateCalculatedAmount(); }, deep: true },
-        'newExpense.discount': function() { this.updateCalculatedAmount(); }
+    watch: { 'newExpense.items': { handler() { this.updateCalculatedAmount(); }, deep: true }, 'newExpense.discount': function() { this.updateCalculatedAmount(); } },
+    mounted() { 
+        this.loadData(); 
+        this.selectedStore = this.currentCompanyOptions[0] || 'other';
+        
+        // --- 智慧導航 (Auto Navigation) ---
+        // 檢查網址參數，如果是從 Gemini 點回來，自動跳轉並聚焦
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('tab') === 'pricewatch') {
+            this.currentTab = 'pricewatch';
+            this.geminiMode = 'app';
+            this.isWaitingForPaste = true; // 啟動黃色閃爍
+            
+            // 等待 DOM 渲染後聚焦輸入框
+            this.$nextTick(() => {
+                if (this.$refs.pasteArea) {
+                    this.$refs.pasteArea.focus();
+                    // 移除 URL 參數讓網址變乾淨 (Optional)
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            });
+        }
     },
-    mounted() { this.loadData(); this.selectedStore = this.currentCompanyOptions[0] || 'other'; },
     methods: {
         saveData() { localStorage.setItem('goodHusbandDB_v5_3', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB })); },
-        loadData() {
-            let data = localStorage.getItem('goodHusbandDB_v5_3') || localStorage.getItem('goodHusbandDB_v5_2');
-            if (data) {
-                let p = JSON.parse(data);
-                this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || '';
-                if(p.companyDB) this.companyDB = p.companyDB;
-            }
-        },
-        saveSettings() { this.saveData(); alert('設定已儲存！'); },
-        getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
+        loadData() { let data = localStorage.getItem('goodHusbandDB_v5_3') || localStorage.getItem('goodHusbandDB_v5_2'); if (data) { let p = JSON.parse(data); this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || ''; if(p.companyDB) this.companyDB = p.companyDB; } },
+        saveSettings() { this.saveData(); alert('設定已儲存！'); }, getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
+        isSelected(item) { return this.selectedIds.includes(item.id); }, toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); }, selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
+        prepareExport(type) { this.exportActionType = type; this.showExportModal = true; }, confirmExport(format) { this.showExportModal = false; let text = ""; if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n'); else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name} [${i.brand||''}] | $${i.latestPrice||'-'}`).join('\n'); else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n'); if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`; else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); } else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製')); },
         
-        isSelected(item) { return this.selectedIds.includes(item.id); },
-        toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); },
-        selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
-
-        prepareExport(type) { this.exportActionType = type; this.showExportModal = true; },
-        confirmExport(format) {
-            this.showExportModal = false;
-            let text = "";
-            if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n');
-            else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name} [${i.brand||''}] | $${i.latestPrice||'-'}`).join('\n');
-            else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n');
+        // --- Gemini Integration (v5.4 Closed Loop) ---
+        copyAndOpenGemini() {
+            const userText = this.pastedText || "（請自行辨識圖片或文字）";
+            // 動態取得當前網址 (確保返回連結正確)
+            const returnUrl = window.location.href.split('?')[0] + "?tab=pricewatch&autoPaste=true";
             
-            if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
-            else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); }
-            else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製'));
-        },
+            const prompt = `你現在是我的「家居庫存資料整理員」。
+請將我提供的商品內容轉換為 JSON 格式。
 
-        openAddModal() { this.editingForm = { categoryId: '99', stock: 1, brand: '' }; this.showAddModal = true; },
-        closeModal() { this.showAddModal = false; this.showEditModal = false; this.editingForm = {}; },
-        saveItem() {
-            if(!this.editingForm.name) return alert('名稱必填');
-            if (this.showEditModal) {
-                const idx = this.inventory.findIndex(i => i.id === this.editingForm.id);
-                if (idx !== -1) this.inventory[idx] = { ...this.editingForm };
-            } else {
-                this.editingForm.id = Date.now().toString();
-                this.inventory.push(this.editingForm);
-            }
-            this.saveData(); this.closeModal(); this.selectedIds = [];
-        },
-        actionDelete() { if(!confirm('刪除？')) return; this.inventory = this.inventory.filter(i => !this.selectedIds.includes(i.id)); this.selectedIds = []; this.saveData(); },
-        actionEdit() { if(this.selectedItems.length!==1) return; this.editingForm = JSON.parse(JSON.stringify(this.selectedItems[0])); this.showEditModal = true; },
-        updateStock(item, change) { item.stock = Math.max(0, (item.stock||0)+change); this.saveData(); },
-
-        onCategoryChange() { this.selectedStore = this.currentCompanyOptions[0] || 'other'; this.customStoreInput = ''; },
-        addCartItem() {
-            if (!this.selectedInventoryItem) return;
-            if (this.tempQty < 1) return alert('數量至少為 1');
-            if (!this.newExpense.items) this.newExpense.items = [];
-            this.newExpense.items.push({ itemId: this.selectedInventoryItem.id, name: this.selectedInventoryItem.name, brand: this.selectedInventoryItem.brand || '', price: this.selectedInventoryItem.latestPrice || 0, qty: this.tempQty });
-            this.tempQty = 1; this.selectedInventoryItem = null;
-        },
-        removeCartItem(idx) { this.newExpense.items.splice(idx, 1); },
-        updateCalculatedAmount() {
-            if (this.isShoppingCategory) {
-                const itemsTotal = (this.newExpense.items || []).reduce((sum, item) => sum + (item.price * item.qty), 0);
-                const discount = this.newExpense.discount || 0;
-                this.newExpense.amount = parseFloat(Math.max(0, itemsTotal - discount).toFixed(1));
-            }
-        },
-        saveExpense() {
-            let storeName = this.selectedStore;
-            if (storeName === 'other') storeName = this.customStoreInput || '其他';
-            this.newExpense.note = storeName;
-            
-            if(!this.newExpense.amount && this.newExpense.amount !== 0) return alert('金額必填');
-
-            if (this.isEditingExpense) {
-                this.expenses[this.editingExpenseIndex] = { ...this.newExpense };
-                alert('紀錄已更新');
-            } else {
-                this.newExpense.id = Date.now().toString() + Math.random().toString(36).substr(2,5);
-                this.expenses.push({ ...this.newExpense });
-                if (this.isShoppingCategory && this.newExpense.items && this.newExpense.items.length > 0) {
-                    if (confirm(`儲存成功！\n是否要將這 ${this.newExpense.items.length} 項商品的數量加入庫存？`)) {
-                        this.updateInventoryFromOrder(this.newExpense.items);
-                    }
-                }
-            }
-            this.resetExpenseForm(); this.saveData();
-        },
-        updateInventoryFromOrder(items) {
-            let count = 0;
-            items.forEach(orderItem => {
-                const invItem = this.inventory.find(i => i.id === orderItem.itemId);
-                if (invItem) { invItem.stock = (invItem.stock || 0) + orderItem.qty; count++; }
-            });
-            alert(`已更新 ${count} 個庫存項目。`);
-        },
-        deleteExpense(idx) { if(confirm('刪除紀錄？')) { this.expenses.splice(idx, 1); this.saveData(); } },
-        viewOrderDetails(exp) { this.viewingOrder = exp; this.showOrderDetailModal = true; },
-        editOrderFromModal() { this.showOrderDetailModal = false; this.editExpenseDirectly(this.viewingOrder); },
-        editExpenseDirectly(exp) {
-            this.newExpense = JSON.parse(JSON.stringify(exp));
-            const currentOpts = this.companyDB[this.newExpense.category] || [];
-            if (currentOpts.includes(this.newExpense.note)) { this.selectedStore = this.newExpense.note; } else { this.selectedStore = 'other'; this.customStoreInput = this.newExpense.note; }
-            this.isEditingExpense = true; this.editingExpenseIndex = this.expenses.findIndex(e => e.id === exp.id);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        },
-        cancelEditExpense() { this.resetExpenseForm(); },
-        resetExpenseForm() {
-            this.newExpense = { date: new Date().toISOString().split('T')[0], category: '超級市場', amount: 0, note: '', refNumber: '', items: [], discount: 0 };
-            this.selectedInventoryItem = null; this.tempQty = 1;
-            this.isEditingExpense = false; this.editingExpenseIndex = -1;
-            this.onCategoryChange();
-        },
-        exportExpenseCSV() {
-            let csv = "\uFEFF日期,類別,公司,金額,單號\n";
-            this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}"\n`);
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-            a.download = "family_expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
-        },
-
-        // --- Gemini App Integration (New v5.3) ---
-        copyPromptForApp() {
-            const userText = this.pastedText || "請自行辨識圖片或文字";
-            // 構建精準 Prompt (包含分類ID表)
-            const prompt = `你現在是我的「家居庫存資料整理員」。請將我提供的商品內容轉換為 JSON 格式。
 1. 輸出格式：嚴格只輸出 JSON Array [...]，不要 markdown。
 2. 欄位：name, brand, categoryId, latestPrice (數字), unitPrice (如 2/包), url
-3. 分類ID表：
-   10:食品, 20:飲品, 30:清潔, 40:護理, 50:衛生, 60:廚房, 70:藥品, 99:其他
-4. 我的輸入內容：
+3. 分類ID表：10:食品, 20:飲品, 30:清潔, 40:護理, 50:衛生, 60:廚房, 70:藥品, 99:其他
+
+非常重要：請在 JSON 輸出結束後，新起一行，附上這個返回連結：
+[↩️ 點擊這裡返回系統匯入](${returnUrl})
+
+我的輸入內容：
 ${userText}`;
+
             navigator.clipboard.writeText(prompt).then(() => {
-                alert("已複製提示詞！\n請開啟 Gemini App 貼上並發送。");
+                // 自動開啟 Gemini
+                window.open("https://gemini.google.com/app", "_blank");
             });
         },
 
-        importFromJSON() { try { const list = JSON.parse(this.importJsonText); if(Array.isArray(list)) { list.forEach(i => { i.id = Date.now()+Math.random().toString(36).substr(2,5); i.stock=0; }); this.inventory.push(...list); this.importJsonText=''; this.saveData(); alert(`匯入 ${list.length}`); } } catch(e){alert('JSON 錯誤');} },
-        async analyzePrice() { if(!this.pastedText||!this.apiKey)return alert('請填寫'); this.isAnalyzing=true; try{ const prompt=`分析商品:"${this.pastedText}" JSON:{"price":數,"unitPrice":"文","brand":"文"}`; const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})}); const data=await res.json(); const r=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim()); this.selectedItemForAnalysis.latestPrice=r.price; this.selectedItemForAnalysis.unitPrice=r.unitPrice; this.selectedItemForAnalysis.brand=r.brand; this.saveData(); alert(`更新:$${r.price}`); }catch(e){alert('失敗');}finally{this.isAnalyzing=false;} },
-        exportData(type) { if(type==='json'){ const a=document.createElement('a'); a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey,companyDB:this.companyDB})); a.download="backup.json"; document.body.appendChild(a);a.click();a.remove(); } else if(type==='csv'){ let csv="\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n"; this.inventory.forEach(i=>{ csv+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n"; }); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download="inventory.csv"; document.body.appendChild(a);a.click();a.remove(); } },
-        importData(e) { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(evt)=>{ const c=evt.target.result; if(f.name.endsWith('.json')){ try{ const p=JSON.parse(c); this.inventory=p.inventory||[]; this.expenses=p.expenses||[]; this.apiKey=p.apiKey||''; if(p.companyDB)this.companyDB=p.companyDB; this.saveData(); alert('還原成功'); }catch(err){alert('JSON錯誤');} return; } }; r.readAsText(f); }
+        importFromJSON() { try { const list = JSON.parse(this.importJsonText); if(Array.isArray(list)) { list.forEach(i => { i.id = Date.now()+Math.random().toString(36).substr(2,5); i.stock=0; }); this.inventory.push(...list); this.importJsonText=''; this.isWaitingForPaste = false; this.saveData(); alert(`成功匯入 ${list.length} 筆資料！`); } } catch(e){alert('JSON 格式錯誤，請只複製 [...] 的部分');} },
+
+        // (Previous methods kept compacted for brevity but fully functional)
+        openAddModal(){this.editingForm={categoryId:'99',stock:1,brand:''};this.showAddModal=true;},closeModal(){this.showAddModal=false;this.showEditModal=false;this.editingForm={};},saveItem(){if(!this.editingForm.name)return alert('名稱必填');if(this.showEditModal){const idx=this.inventory.findIndex(i=>i.id===this.editingForm.id);if(idx!==-1)this.inventory[idx]={...this.editingForm};}else{this.editingForm.id=Date.now().toString();this.inventory.push(this.editingForm);}this.saveData();this.closeModal();this.selectedIds=[];},actionDelete(){if(!confirm('刪除？'))return;this.inventory=this.inventory.filter(i=>!this.selectedIds.includes(i.id));this.selectedIds=[];this.saveData();},actionEdit(){if(this.selectedItems.length!==1)return;this.editingForm=JSON.parse(JSON.stringify(this.selectedItems[0]));this.showEditModal=true;},updateStock(item,change){item.stock=Math.max(0,(item.stock||0)+change);this.saveData();},onCategoryChange(){this.selectedStore=this.currentCompanyOptions[0]||'other';this.customStoreInput='';},addCartItem(){if(!this.selectedInventoryItem)return;if(this.tempQty<1)return alert('數量至少為 1');if(!this.newExpense.items)this.newExpense.items=[];this.newExpense.items.push({itemId:this.selectedInventoryItem.id,name:this.selectedInventoryItem.name,brand:this.selectedInventoryItem.brand||'',price:this.selectedInventoryItem.latestPrice||0,qty:this.tempQty});this.tempQty=1;this.selectedInventoryItem=null;},removeCartItem(idx){this.newExpense.items.splice(idx,1);},updateCalculatedAmount(){if(this.isShoppingCategory){const itemsTotal=(this.newExpense.items||[]).reduce((sum,item)=>sum+(item.price*item.qty),0);const discount=this.newExpense.discount||0;this.newExpense.amount=parseFloat(Math.max(0,itemsTotal-discount).toFixed(1));}},saveExpense(){let storeName=this.selectedStore;if(storeName==='other')storeName=this.customStoreInput||'其他';this.newExpense.note=storeName;if(!this.newExpense.amount&&this.newExpense.amount!==0)return alert('金額必填');if(this.isEditingExpense){this.expenses[this.editingExpenseIndex]={...this.newExpense};alert('紀錄已更新');}else{this.newExpense.id=Date.now().toString()+Math.random().toString(36).substr(2,5);this.expenses.push({...this.newExpense});if(this.isShoppingCategory&&this.newExpense.items&&this.newExpense.items.length>0){if(confirm(`儲存成功！\n是否要將這 ${this.newExpense.items.length} 項商品的數量加入庫存？`)){this.updateInventoryFromOrder(this.newExpense.items);}}}this.resetExpenseForm();this.saveData();},updateInventoryFromOrder(items){let count=0;items.forEach(orderItem=>{const invItem=this.inventory.find(i=>i.id===orderItem.itemId);if(invItem){invItem.stock=(invItem.stock||0)+orderItem.qty;count++;}});alert(`已更新 ${count} 個庫存項目。`);},deleteExpense(idx){if(confirm('刪除紀錄？')){this.expenses.splice(idx,1);this.saveData();}},viewOrderDetails(exp){this.viewingOrder=exp;this.showOrderDetailModal=true;},editOrderFromModal(){this.showOrderDetailModal=false;this.editExpenseDirectly(this.viewingOrder);},editExpenseDirectly(exp){this.newExpense=JSON.parse(JSON.stringify(exp));const currentOpts=this.companyDB[this.newExpense.category]||[];if(currentOpts.includes(this.newExpense.note)){this.selectedStore=this.newExpense.note;}else{this.selectedStore='other';this.customStoreInput=this.newExpense.note;}this.isEditingExpense=true;this.editingExpenseIndex=this.expenses.findIndex(e=>e.id===exp.id);window.scrollTo({top:0,behavior:'smooth'});},cancelEditExpense(){this.resetExpenseForm();},resetExpenseForm(){this.newExpense={date:new Date().toISOString().split('T')[0],category:'超級市場',amount:0,note:'',refNumber:'',items:[],discount:0};this.selectedInventoryItem=null;this.tempQty=1;this.isEditingExpense=false;this.editingExpenseIndex=-1;this.onCategoryChange();},exportExpenseCSV(){let csv="\uFEFF日期,類別,公司,金額,單號\n";this.sortedExpenses.forEach(e=>csv+=`${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}"\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download="family_expenses.csv";document.body.appendChild(a);a.click();a.remove();},async analyzePrice(){if(!this.pastedText||!this.apiKey)return alert('請填寫');this.isAnalyzing=true;try{const prompt=`分析商品:"${this.pastedText}" JSON:{"price":數,"unitPrice":"文","brand":"文"}`;const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});const data=await res.json();const r=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim());this.selectedItemForAnalysis.latestPrice=r.price;this.selectedItemForAnalysis.unitPrice=r.unitPrice;this.selectedItemForAnalysis.brand=r.brand;this.saveData();alert(`更新:$${r.price}`);}catch(e){alert('失敗');}finally{this.isAnalyzing=false;}},exportData(type){if(type==='json'){const a=document.createElement('a');a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey,companyDB:this.companyDB}));a.download="backup.json";document.body.appendChild(a);a.click();a.remove();}else if(type==='csv'){let csv="\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n";this.inventory.forEach(i=>{csv+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n";});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download="inventory.csv";document.body.appendChild(a);a.click();a.remove();}},importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(evt)=>{const c=evt.target.result;if(f.name.endsWith('.json')){try{const p=JSON.parse(c);this.inventory=p.inventory||[];this.expenses=p.expenses||[];this.apiKey=p.apiKey||'';if(p.companyDB)this.companyDB=p.companyDB;this.saveData();alert('還原成功');}catch(err){alert('JSON錯誤');}return;}};r.readAsText(f);}
     }
 }).mount('#app');
 </script>
