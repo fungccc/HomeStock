@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v5.8</title>
+    <title>好男人智慧家居 v5.9</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -31,8 +31,6 @@
         .cart-summary { background-color: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .highlight-paste-area { animation: pulse-yellow 2s infinite; border: 2px solid #ffc107 !important; }
         @keyframes pulse-yellow { 0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); border-color: #ffc107; } 70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); border-color: #ffc107; } 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); } }
-        
-        /* 管理頁面按鈕樣式 */
         .settings-btn { text-align: left; height: 100%; display: flex; align-items: center; justify-content: flex-start; padding: 12px; }
         .settings-btn i { font-size: 1.5rem; margin-right: 10px; }
         .settings-btn div { line-height: 1.2; }
@@ -41,13 +39,13 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.8</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.9</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
-        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存</a></li>
-        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'expenses'}" @click="currentTab = 'expenses'" href="#">💸 支出/訂單</a></li>
-        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'pricewatch'}" @click="currentTab = 'pricewatch'" href="#">🤖 格價</a></li>
-        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'" href="#">⚙️ 設定</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'expenses'}" @click="currentTab = 'expenses'" href="#">💸 賬單紀錄</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'pricewatch'}" @click="currentTab = 'pricewatch'" href="#">🤖 智能格價</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'" href="#">⚙️ 系統設定</a></li>
     </ul>
 
     <div v-if="currentTab === 'inventory'">
@@ -90,7 +88,7 @@
 
         <div v-if="geminiMode === 'app'">
             <div class="card p-3 border-info">
-                <h5 class="text-info-emphasis"><i class="bi bi-robot"></i> 步驟 1: 選擇 AI 並跳轉</h5>
+                <h5 class="text-info-emphasis"><i class="bi bi-robot"></i> 步驟 1: 啟動 AI 助手辨識</h5>
                 <textarea v-model="pastedText" class="form-control mb-3" rows="3" placeholder="在此貼上雜亂的商品文字或商品連結..."></textarea>
                 
                 <div class="btn-group w-100 mb-2" role="group">
@@ -127,16 +125,14 @@
             <h5>💾 資料庫管理</h5>
             <div class="row g-2 mb-3">
                 <div class="col-12">
-                    <button @click="exportData('json')" class="btn btn-outline-primary w-100 settings-btn"><i class="bi bi-cloud-download"></i> <div><b>完整備份 (JSON)</b><br><span class="small">包含所有資料與設定</span></div></button>
+                    <button @click="prepareFileExport('json')" class="btn btn-outline-primary w-100 settings-btn"><i class="bi bi-cloud-download"></i> <div><b>完整備份 (JSON)</b><br><span class="small">包含所有資料與設定</span></div></button>
                 </div>
-                <div class="col-12">
-                    <hr class="my-1">
+                <div class="col-12"><hr class="my-1"></div>
+                <div class="col-6">
+                    <button @click="prepareFileExport('inventory_csv')" class="btn btn-outline-success w-100 settings-btn"><i class="bi bi-file-earmark-spreadsheet"></i> <div><b>匯出庫存CSV</b></div></button>
                 </div>
                 <div class="col-6">
-                    <button @click="exportData('csv')" class="btn btn-outline-success w-100 settings-btn"><i class="bi bi-file-earmark-spreadsheet"></i> <div><b>匯出庫存CSV</b></div></button>
-                </div>
-                <div class="col-6">
-                    <button @click="exportData('expense_csv')" class="btn btn-outline-info w-100 settings-btn"><i class="bi bi-file-earmark-text"></i> <div><b>匯出紀錄列表</b></div></button>
+                    <button @click="prepareFileExport('expense_csv')" class="btn btn-outline-info w-100 settings-btn"><i class="bi bi-file-earmark-text"></i> <div><b>匯出紀錄列表</b></div></button>
                 </div>
             </div>
             
@@ -153,33 +149,29 @@
         </div>
     </div>
 
-    <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
+    <div v-if="showFileExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5>
-                    <button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title">📤 檔案輸出選項</h5>
+                    <button @click="showFileExportModal = false" class="btn-close"></button>
                 </div>
-                <div class="modal-body p-0">
-                    <table class="table table-striped mb-0 text-center">
-                        <thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead>
-                        <tbody>
-                            <tr v-for="stat in monthlyStats" :key="stat.month">
-                                <td>{{ stat.month }}</td>
-                                <td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td>
-                            </tr>
-                            <tr v-if="monthlyStats.length === 0"><td colspan="2" class="py-3">暫無資料</td></tr>
-                        </tbody>
-                    </table>
+                <div class="modal-body d-grid gap-3">
+                    <button @click="executeExport('share')" class="btn btn-lg btn-success text-start">
+                        <i class="bi bi-whatsapp me-2"></i> <b>系統分享 / 傳送檔案</b>
+                        <div class="small opacity-75">適用於 WhatsApp, AirDrop, 儲存到檔案</div>
+                    </button>
+                    <button @click="executeExport('download')" class="btn btn-lg btn-outline-secondary text-start">
+                        <i class="bi bi-download me-2"></i> <b>下載檔案</b>
+                        <div class="small opacity-75">儲存到裝置的下載資料夾</div>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;">
-        <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> 警告：資料庫空白！</h5></div><div class="modal-body"><p class="fw-bold">您現在可能是在 App (Grok/FB/Line) 的內部瀏覽器中。</p><p>基於安全限制，這裡無法讀取您原本儲存的資料。</p><div class="alert alert-warning">請點擊右下角/右上角的瀏覽器圖示 🧭<br>選擇 <b>「在 Safari 開啟」</b> 或 <b>「在 Chrome 開啟」</b> 以找回您的資料。</div></div><div class="modal-footer"><button @click="showLostDataWarning = false" class="btn btn-secondary">我了解，僅此次關閉</button></div></div></div>
-    </div>
-
+    <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length === 0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
+    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> 警告：資料庫空白！</h5></div><div class="modal-body"><p class="fw-bold">您現在可能是在 App (Grok/FB/Line) 的內部瀏覽器中。</p><p>基於安全限制，這裡無法讀取您原本儲存的資料。</p><div class="alert alert-warning">請點擊右下角/右上角的瀏覽器圖示 🧭<br>選擇 <b>「在 Safari 開啟」</b> 或 <b>「在 Chrome 開啟」</b> 以找回您的資料。</div></div><div class="modal-footer"><button @click="showLostDataWarning = false" class="btn btn-secondary">我了解，僅此次關閉</button></div></div></div></div>
     <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
     <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div class="small text-muted" v-if="viewingOrder.refNumber">單號: {{ viewingOrder.refNumber }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr v-if="viewingOrder.discount > 0"><td colspan="2" class="text-end text-muted">折扣:</td><td class="text-end pe-3 text-muted">- ${{ viewingOrder.discount }}</td></tr><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
     <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
@@ -194,10 +186,10 @@ createApp({
             currentTab: 'pricewatch', geminiMode: 'app', apiKey: '', searchQuery: '',
             selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [],
             
-            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false,
+            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false, showFileExportModal: false,
             exportActionType: '', editingForm: {}, viewingOrder: {}, monthlyStats: [],
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null, isWaitingForPaste: false,
-            currentImportType: '', // json, inventory_csv, expense_csv
+            currentImportType: '', currentExportType: '', // For file handling
 
             newExpense: { date: new Date().toISOString().split('T')[0], category: '超級市場', amount: 0, note: '', refNumber: '', items: [], discount: 0 },
             selectedInventoryItem: null, tempQty: 1, selectedStore: '', customStoreInput: '',
@@ -266,78 +258,81 @@ createApp({
 
         importFromJSON() { try { let cleanText = this.importJsonText.replace(/```json/g, '').replace(/```/g, ''); const linkIndex = cleanText.indexOf('[↩️'); if (linkIndex !== -1) cleanText = cleanText.substring(0, linkIndex); cleanText = cleanText.trim(); const list = JSON.parse(cleanText); if (Array.isArray(list)) { list.forEach(i => { i.id = Date.now() + Math.random().toString(36).substr(2, 5); i.stock = 0; if (i.url && i.url.startsWith('[') && i.url.includes('](')) { const urlMatch = i.url.match(/\((.*?)\)/); if (urlMatch) i.url = urlMatch[1]; } }); this.inventory.push(...list); this.importJsonText = ''; this.isWaitingForPaste = false; this.saveData(); alert(`成功匯入 ${list.length} 筆資料！`); } } catch (e) { alert('匯入失敗：請確認貼上的是 JSON'); } },
 
-        // --- Monthly Summary (New v5.8) ---
         showMonthlySummary() {
             const stats = {};
             this.expenses.forEach(e => {
-                // e.date format YYYY-MM-DD
-                const monthKey = e.date.substring(0, 7); // YYYY-MM
+                const monthKey = e.date.substring(0, 7);
                 if (!stats[monthKey]) stats[monthKey] = 0;
                 stats[monthKey] += parseFloat(e.amount || 0);
             });
-            // Convert to array and sort descending
             this.monthlyStats = Object.keys(stats).map(k => ({ month: k, total: stats[k] })).sort((a, b) => b.month.localeCompare(a.month));
             this.showMonthlyModal = true;
         },
 
-        // --- Import / Export System (Updated v5.8) ---
-        triggerImport(type) {
-            this.currentImportType = type;
-            this.$refs.fileInput.click();
+        // --- File System (v5.9 Enhanced Share) ---
+        prepareFileExport(type) {
+            this.currentExportType = type;
+            this.showFileExportModal = true;
         },
+        executeExport(method) {
+            this.showFileExportModal = false;
+            let content = "", filename = "", mimeType = "text/plain";
+
+            if (this.currentExportType === 'json') {
+                content = JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey,companyDB:this.companyDB});
+                filename = "good_husband_backup.json";
+                mimeType = "application/json";
+            } else if (this.currentExportType === 'inventory_csv') {
+                content = "\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n";
+                this.inventory.forEach(i=>{content+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n";});
+                filename = "inventory.csv";
+                mimeType = "text/csv";
+            } else if (this.currentExportType === 'expense_csv') {
+                content = "\uFEFF日期,類別,公司,金額,單號\n";
+                this.sortedExpenses.forEach(e => content += `${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}"\n`);
+                filename = "expenses_list.csv";
+                mimeType = "text/csv";
+            }
+
+            if (method === 'download') {
+                const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:mimeType})); a.download=filename; document.body.appendChild(a);a.click();a.remove();
+            } else if (method === 'share') {
+                const file = new File([content], filename, { type: mimeType });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: filename,
+                        text: '好男人智慧家居資料匯出'
+                    }).catch(err => console.log('Share canceled', err));
+                } else {
+                    alert("您的裝置不支援檔案分享，將改為直接下載。");
+                    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:mimeType})); a.download=filename; document.body.appendChild(a);a.click();a.remove();
+                }
+            }
+        },
+        triggerImport(type) { this.currentImportType = type; this.$refs.fileInput.click(); },
         handleFileImport(e) {
-            const f = e.target.files[0];
-            if (!f) return;
+            const f = e.target.files[0]; if (!f) return;
             const r = new FileReader();
             r.onload = (evt) => {
                 const c = evt.target.result;
                 if (this.currentImportType === 'json') {
                     try { const p = JSON.parse(c); this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || ''; if(p.companyDB) this.companyDB = p.companyDB; this.saveData(); alert('還原成功'); } catch(err) { alert('JSON 格式錯誤'); }
                 } else if (this.currentImportType === 'inventory_csv') {
-                    // Simple inventory CSV parser
-                    const l = c.trim().split(/\r?\n/);
-                    let count=0;
-                    for(let i=1; i<l.length; i++){
-                        const cols = l[i].split(',').map(s => s.replace(/^"|"$/g, ''));
-                        if(cols.length>3) { 
-                            this.inventory.push({ id:Date.now()+Math.random().toString(36), categoryId:cols[1], brand:cols[2], name:cols[3], stock:cols[4], latestPrice:cols[5] }); count++;
-                        }
-                    }
+                    const l = c.trim().split(/\r?\n/); let count=0;
+                    for(let i=1; i<l.length; i++){ const cols = l[i].split(',').map(s => s.replace(/^"|"$/g, '')); if(cols.length>3) { this.inventory.push({ id:Date.now()+Math.random().toString(36), categoryId:cols[1], brand:cols[2], name:cols[3], stock:cols[4], latestPrice:cols[5] }); count++; } }
                     this.saveData(); alert(`匯入 ${count} 筆庫存`);
                 } else if (this.currentImportType === 'expense_csv') {
-                    // Expenses CSV parser
-                    const l = c.trim().split(/\r?\n/);
-                    let count=0;
-                    for(let i=1; i<l.length; i++){
-                        const cols = l[i].split(',').map(s => s.replace(/^"|"$/g, ''));
-                        // Format: Date, Category, Note, Amount, Ref
-                        if(cols.length>=4) {
-                            this.expenses.push({ id:Date.now()+Math.random().toString(36), date:cols[0], category:cols[1], note:cols[2], amount:parseFloat(cols[3]), refNumber:cols[4]||'' }); count++;
-                        }
-                    }
+                    const l = c.trim().split(/\r?\n/); let count=0;
+                    for(let i=1; i<l.length; i++){ const cols = l[i].split(',').map(s => s.replace(/^"|"$/g, '')); if(cols.length>=4) { this.expenses.push({ id:Date.now()+Math.random().toString(36), date:cols[0], category:cols[1], note:cols[2], amount:parseFloat(cols[3]), refNumber:cols[4]||'' }); count++; } }
                     this.saveData(); alert(`匯入 ${count} 筆支出`);
                 }
-                // Reset input
                 e.target.value = '';
             };
             r.readAsText(f);
         },
-        exportData(type) {
-            if(type==='json'){
-                const a=document.createElement('a'); a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey,companyDB:this.companyDB})); a.download="good_husband_backup.json"; document.body.appendChild(a);a.click();a.remove();
-            } else if(type==='csv'){
-                let csv="\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n";
-                this.inventory.forEach(i=>{csv+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n";});
-                const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download="inventory.csv"; document.body.appendChild(a);a.click();a.remove();
-            } else if(type==='expense_csv') {
-                let csv = "\uFEFF日期,類別,公司,金額,單號\n";
-                this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}"\n`);
-                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-                a.download = "expenses_list.csv"; document.body.appendChild(a); a.click(); a.remove();
-            }
-        },
 
-        // ... (Keep existing methods: openAddModal, saveItem, etc. unchanged) ...
+        // ... (Keep other methods) ...
         openAddModal(){this.editingForm={categoryId:'99',stock:1,brand:''};this.showAddModal=true;},closeModal(){this.showAddModal=false;this.showEditModal=false;this.editingForm={};},saveItem(){if(!this.editingForm.name)return alert('名稱必填');if(this.showEditModal){const idx=this.inventory.findIndex(i=>i.id===this.editingForm.id);if(idx!==-1)this.inventory[idx]={...this.editingForm};}else{this.editingForm.id=Date.now().toString();this.inventory.push(this.editingForm);}this.saveData();this.closeModal();this.selectedIds=[];},actionDelete(){if(!confirm('刪除？'))return;this.inventory=this.inventory.filter(i=>!this.selectedIds.includes(i.id));this.selectedIds=[];this.saveData();},actionEdit(){if(this.selectedItems.length!==1)return;this.editingForm=JSON.parse(JSON.stringify(this.selectedItems[0]));this.showEditModal=true;},updateStock(item,change){item.stock=Math.max(0,(item.stock||0)+change);this.saveData();},onCategoryChange(){this.selectedStore=this.currentCompanyOptions[0]||'other';this.customStoreInput='';},addCartItem(){if(!this.selectedInventoryItem)return;if(this.tempQty<1)return alert('數量至少為 1');if(!this.newExpense.items)this.newExpense.items=[];this.newExpense.items.push({itemId:this.selectedInventoryItem.id,name:this.selectedInventoryItem.name,brand:this.selectedInventoryItem.brand||'',price:this.selectedInventoryItem.latestPrice||0,qty:this.tempQty});this.tempQty=1;this.selectedInventoryItem=null;},removeCartItem(idx){this.newExpense.items.splice(idx,1);},updateCalculatedAmount(){if(this.isShoppingCategory){const itemsTotal=(this.newExpense.items||[]).reduce((sum,item)=>sum+(item.price*item.qty),0);const discount=this.newExpense.discount||0;this.newExpense.amount=parseFloat(Math.max(0,itemsTotal-discount).toFixed(1));}},saveExpense(){let storeName=this.selectedStore;if(storeName==='other')storeName=this.customStoreInput||'其他';this.newExpense.note=storeName;if(!this.newExpense.amount&&this.newExpense.amount!==0)return alert('金額必填');if(this.isEditingExpense){this.expenses[this.editingExpenseIndex]={...this.newExpense};alert('紀錄已更新');}else{this.newExpense.id=Date.now().toString()+Math.random().toString(36).substr(2,5);this.expenses.push({...this.newExpense});if(this.isShoppingCategory&&this.newExpense.items&&this.newExpense.items.length>0){if(confirm(`儲存成功！\n是否要將這 ${this.newExpense.items.length} 項商品的數量加入庫存？`)){this.updateInventoryFromOrder(this.newExpense.items);}}}this.resetExpenseForm();this.saveData();},updateInventoryFromOrder(items){let count=0;items.forEach(orderItem=>{const invItem=this.inventory.find(i=>i.id===orderItem.itemId);if(invItem){invItem.stock=(invItem.stock||0)+orderItem.qty;count++;}});alert(`已更新 ${count} 個庫存項目。`);},deleteExpense(idx){if(confirm('刪除紀錄？')){this.expenses.splice(idx,1);this.saveData();}},viewOrderDetails(exp){this.viewingOrder=exp;this.showOrderDetailModal=true;},editOrderFromModal(){this.showOrderDetailModal=false;this.editExpenseDirectly(this.viewingOrder);},editExpenseDirectly(exp){this.newExpense=JSON.parse(JSON.stringify(exp));const currentOpts=this.companyDB[this.newExpense.category]||[];if(currentOpts.includes(this.newExpense.note)){this.selectedStore=this.newExpense.note;}else{this.selectedStore='other';this.customStoreInput=this.newExpense.note;}this.isEditingExpense=true;this.editingExpenseIndex=this.expenses.findIndex(e=>e.id===exp.id);window.scrollTo({top:0,behavior:'smooth'});},cancelEditExpense(){this.resetExpenseForm();},resetExpenseForm(){this.newExpense={date:new Date().toISOString().split('T')[0],category:'超級市場',amount:0,note:'',refNumber:'',items:[],discount:0};this.selectedInventoryItem=null;this.tempQty=1;this.isEditingExpense=false;this.editingExpenseIndex=-1;this.onCategoryChange();},exportExpenseCSV(){let csv="\uFEFF日期,類別,公司,金額,單號\n";this.sortedExpenses.forEach(e=>csv+=`${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}"\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download="family_expenses.csv";document.body.appendChild(a);a.click();a.remove();},async analyzePrice(){if(!this.pastedText||!this.apiKey)return alert('請填寫');this.isAnalyzing=true;try{const prompt=`分析商品:"${this.pastedText}" JSON:{"price":數,"unitPrice":"文","brand":"文"}`;const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});const data=await res.json();const r=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim());this.selectedItemForAnalysis.latestPrice=r.price;this.selectedItemForAnalysis.unitPrice=r.unitPrice;this.selectedItemForAnalysis.brand=r.brand;this.saveData();alert(`更新:$${r.price}`);}catch(e){alert('失敗');}finally{this.isAnalyzing=false;}},importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(evt)=>{const c=evt.target.result;if(f.name.endsWith('.json')){try{const p=JSON.parse(c);this.inventory=p.inventory||[];this.expenses=p.expenses||[];this.apiKey=p.apiKey||'';if(p.companyDB)this.companyDB=p.companyDB;this.saveData();alert('還原成功');}catch(err){alert('JSON錯誤');}return;}};r.readAsText(f);}
     }
 }).mount('#app');
