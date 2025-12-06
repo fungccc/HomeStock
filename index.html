@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧家居庫存系統 v2.1</title>
+    <title>智慧家居庫存系統 v2.2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
     <style>
@@ -18,6 +18,8 @@
         .btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }
         /* 讓表格文字垂直置中 */
         .table > tbody > tr > td { vertical-align: middle; }
+        .isbn-text { font-family: monospace; color: #666; letter-spacing: 1px; }
+        .category-tag { font-size: 0.85rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -26,7 +28,7 @@
     <h3 class="mb-3 text-center">🏠 智慧家居庫存系統</h3>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified">
-        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'planning'}" @click="currentTab = 'planning'" href="#">📋 資料庫/匯入</a></li>
+        <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'planning'}" @click="currentTab = 'planning'" href="#">📋 資料庫</a></li>
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 用品庫存</a></li>
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'pricewatch'}" @click="currentTab = 'pricewatch'" href="#">💰 格價</a></li>
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'utility'}" @click="currentTab = 'utility'" href="#">⚡ 水電煤</a></li>
@@ -35,50 +37,83 @@
 
     <div v-if="currentTab === 'planning'">
         <div class="card p-3 border-primary mb-3">
-            <h5 class="text-primary">📥 JSON 匯入 (含價格)</h5>
-            <textarea v-model="importJsonText" class="form-control mb-2" rows="3" placeholder='將 Gemini 產生的 JSON 貼在這裡...'></textarea>
-            <button @click="importFromJSON" class="btn btn-primary w-100">匯入資料庫</button>
+            <h5 class="text-primary">📥 JSON 匯入</h5>
+            <div class="input-group">
+                <textarea v-model="importJsonText" class="form-control" rows="1" placeholder='貼上 Gemini JSON...'></textarea>
+                <button @click="importFromJSON" class="btn btn-primary">匯入</button>
+            </div>
         </div>
 
         <div class="card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5>資料庫清單</h5>
+                <h5>家居用品資料庫</h5>
                 <span class="badge bg-secondary">{{ planningList.length }} 項目</span>
             </div>
             
             <div class="table-responsive">
-                <table class="table table-hover text-nowrap table-sm">
+                <table class="table table-hover table-sm">
                     <thead>
                         <tr>
-                            <th>名稱</th>
-                            <th style="min-width:80px">總價($)</th>
-                            <th style="min-width:80px">單件($)</th>
-                            <th>日期</th>
-                            <th>操作</th>
+                            <th style="width:15%">分類</th>
+                            <th style="width:25%">名稱</th>
+                            <th style="width:20%">ISBN/條碼</th>
+                            <th style="width:20%">參考價格</th>
+                            <th style="width:20%">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(item, index) in planningList" :key="index">
-                            <td>
-                                <input v-model="item.name" class="form-control form-control-sm mb-1" style="min-width:120px">
-                                <a v-if="item.url" :href="item.url" target="_blank" class="badge bg-info text-decoration-none">網店連結</a>
-                            </td>
-                            <td>
-                                <input v-model="item.price" type="number" class="form-control form-control-sm" placeholder="總價">
-                            </td>
-                            <td>
-                                <input v-model="item.unitPrice" type="text" class="form-control form-control-sm" placeholder="例如 2.5/包">
-                            </td>
-                            <td>
-                                <span class="small text-muted">{{ item.priceDate || '-' }}</span>
-                            </td>
-                            <td>
-                                <button @click="moveToInventory(index)" class="btn btn-sm btn-success me-1">📥 入庫</button>
-                                <button @click="planningList.splice(index, 1); saveData()" class="btn btn-sm btn-outline-danger">✕</button>
-                            </td>
+                            
+                            <template v-if="editingIndex !== index">
+                                <td>
+                                    <span class="category-tag">
+                                        {{ getCategoryName(item.categoryId) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ item.name }}</div>
+                                    <a v-if="item.url" :href="item.url" target="_blank" class="badge bg-info text-decoration-none mt-1">網店</a>
+                                </td>
+                                <td>
+                                    <span class="isbn-text">{{ item.isbn || '-' }}</span>
+                                </td>
+                                <td>
+                                    <div v-if="item.price">
+                                        <strong>${{ item.price }}</strong>
+                                        <div class="small text-muted">{{ item.unitPrice }}</div>
+                                    </div>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <button @click="startEdit(index)" class="btn btn-sm btn-outline-secondary me-1">✏️ 編輯</button>
+                                    <button @click="moveToInventory(index)" class="btn btn-sm btn-success">📥 入庫</button>
+                                </td>
+                            </template>
+
+                            <template v-else>
+                                <td>
+                                    <select v-model="item.categoryId" class="form-select form-select-sm">
+                                        <option v-for="cat in categories" :value="cat.id">{{ cat.id }} {{ cat.name }}</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input v-model="item.name" class="form-control form-control-sm mb-1" placeholder="名稱">
+                                    <input v-model="item.url" class="form-control form-control-sm" placeholder="網址URL">
+                                </td>
+                                <td>
+                                    <input v-model="item.isbn" class="form-control form-control-sm isbn-text" placeholder="輸入條碼">
+                                </td>
+                                <td>
+                                    <input v-model.number="item.price" type="number" class="form-control form-control-sm mb-1" placeholder="總價">
+                                    <input v-model="item.unitPrice" class="form-control form-control-sm" placeholder="單價備註">
+                                </td>
+                                <td>
+                                    <button @click="stopEdit" class="btn btn-sm btn-primary w-100">💾 儲存</button>
+                                </td>
+                            </template>
                         </tr>
                         <tr v-if="planningList.length === 0">
-                            <td colspan="5" class="text-center text-muted py-3">暫無資料</td>
+                            <td colspan="5" class="text-center text-muted py-3">暫無資料，請匯入 JSON</td>
                         </tr>
                     </tbody>
                 </table>
@@ -100,20 +135,13 @@
             <h5>現有庫存</h5>
             <div class="table-responsive">
                 <table class="table table-hover align-middle text-nowrap">
-                    <thead>
-                        <tr>
-                            <th>名稱</th>
-                            <th>庫存</th>
-                            <th>最新價格</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>名稱</th><th>庫存</th><th>資訊</th><th>操作</th></tr></thead>
                     <tbody>
                         <tr v-for="(item, index) in inventory" :key="index">
                             <td>
                                 {{ item.name }}
-                                <div class="small text-muted" v-if="item.latestPrice">
-                                    ${{ item.latestPrice }} ({{ item.lastPriceCheck }})
+                                <div class="small text-muted" v-if="item.categoryId">
+                                    {{ getCategoryName(item.categoryId) }}
                                 </div>
                             </td>
                             <td>
@@ -123,8 +151,9 @@
                                     <button @click="item.stock++; saveData()" class="btn btn-outline-success">+</button>
                                 </div>
                             </td>
-                            <td :class="item.stock < 2 ? 'status-low' : 'status-ok'">
-                                {{ item.stock < 2 ? '補貨!' : '充足' }}
+                            <td>
+                                <div class="small" v-if="item.isbn">條碼: {{ item.isbn }}</div>
+                                <div class="small text-success" v-if="item.latestPrice">${{ item.latestPrice }}</div>
                             </td>
                             <td>
                                 <button @click="deleteItem(index)" class="btn btn-sm btn-danger">刪除</button>
@@ -138,15 +167,12 @@
 
     <div v-if="currentTab === 'pricewatch'">
         <div class="card p-3 mb-3">
-             <div class="alert alert-info py-2 small">
-                💡 點擊「網店」複製商品資訊，貼入下方讓 Gemini 分析。
-            </div>
             <h5>需查價物品</h5>
             <ul class="list-group list-group-flush">
                 <li v-for="(item, index) in itemsDueForCheck" :key="index" class="list-group-item d-flex justify-content-between align-items-center px-0">
                     <div>
                         <strong>{{ item.name }}</strong>
-                        <div class="small text-muted">上次: {{ item.lastPriceCheck || '從未' }} ${{ item.latestPrice || '?' }}</div>
+                        <div class="small text-muted">上次: {{ item.lastPriceCheck || '從未' }}</div>
                     </div>
                     <div>
                         <a :href="'https://www.wellcome.com.hk/zh-hant/search?q=' + encodeURIComponent(item.name)" target="_blank" class="btn btn-sm btn-outline-danger me-1">惠康</a>
@@ -156,17 +182,14 @@
                 </li>
             </ul>
         </div>
-        
         <div class="card p-3 border-warning" :class="{ loading: isAnalyzing }">
             <h5>🤖 價格分析器</h5>
             <div v-if="selectedItem">
                 <p class="mb-1">正在更新: <strong>{{ selectedItem.name }}</strong></p>
                 <textarea v-model="pastedText" class="form-control mb-2" rows="3" placeholder="貼上商品價格文字..."></textarea>
-                <button @click="analyzePrice" class="btn btn-success w-100" :disabled="!apiKey">
-                    {{ isAnalyzing ? '分析中...' : '提取價格' }}
-                </button>
+                <button @click="analyzePrice" class="btn btn-success w-100" :disabled="!apiKey">分析並更新</button>
             </div>
-            <div v-else class="text-center text-muted py-3">👆 請先選擇上方一個物品</div>
+            <div v-else class="text-center text-muted">👆 請先選擇物品</div>
         </div>
     </div>
 
@@ -219,17 +242,30 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            currentTab: 'planning', 
+            currentTab: 'planning',
             apiKey: '',
             importJsonText: '',
             
+            // UI 狀態
+            editingIndex: -1, // -1 代表沒有任何行在編輯中
+            
+            // 預設分類 (Classification)
+            categories: [
+                { id: '10', name: '食品/乾糧' },
+                { id: '20', name: '飲品' },
+                { id: '30', name: '家居清潔' },
+                { id: '40', name: '個人護理' },
+                { id: '50', name: '紙品/衛生' },
+                { id: '60', name: '廚房用品' },
+                { id: '70', name: '藥品/保健' },
+                { id: '99', name: '其他' }
+            ],
+
             planningList: [], 
             inventory: [],
             newItem: { name: '', stock: 1, checkInterval: 7 },
-            
             bills: [],
             newBill: { type: '電費', date: '', amount: '' },
-            
             selectedItem: null,
             pastedText: '',
             isAnalyzing: false
@@ -264,28 +300,44 @@ createApp({
             }
         },
         saveSettings() { this.saveData(); alert('設定已儲存！'); },
+        
+        // 取得分類名稱
+        getCategoryName(id) {
+            const cat = this.categories.find(c => c.id == id);
+            return cat ? `${id}-${cat.name}` : id || '未分類';
+        },
 
-        // --- 匯入功能 (Gemini JSON) ---
+        // --- 編輯功能 ---
+        startEdit(index) {
+            this.editingIndex = index; // 開啟該行的編輯模式
+        },
+        stopEdit() {
+            this.editingIndex = -1; // 關閉編輯模式
+            this.saveData(); // 儲存修改
+        },
+
+        // --- 匯入功能 ---
         importFromJSON() {
             try {
                 if (!this.importJsonText) return;
                 const newItems = JSON.parse(this.importJsonText);
                 if (Array.isArray(newItems)) {
-                    // 自動補上日期，如果 JSON 沒提供
                     const today = new Date().toISOString().split('T')[0];
                     newItems.forEach(item => {
                         if (!item.priceDate) item.priceDate = today;
+                        // 嘗試自動歸類 (簡單關鍵字判斷，可選)
+                        if (!item.categoryId) item.categoryId = '99'; 
+                        if (!item.isbn) item.isbn = '';
                     });
-                    
                     this.planningList.push(...newItems);
                     this.importJsonText = '';
                     this.saveData();
                     alert(`成功匯入 ${newItems.length} 個項目！`);
-                } else { alert('格式錯誤：必須是 JSON 陣列'); }
+                } else { alert('格式錯誤'); }
             } catch (e) { alert('JSON 解析失敗'); }
         },
         
-        // --- 移到庫存 (帶入價格資訊) ---
+        // --- 移到庫存 ---
         moveToInventory(index) {
             const item = this.planningList[index];
             this.inventory.push({
@@ -294,14 +346,16 @@ createApp({
                 checkInterval: 7,
                 lastBuyDate: new Date().toISOString().split('T')[0],
                 url: item.url,
-                // 自動帶入價格與日期
                 latestPrice: item.price,
-                lastPriceCheck: item.priceDate
+                lastPriceCheck: item.priceDate,
+                categoryId: item.categoryId, // 帶入分類
+                isbn: item.isbn              // 帶入 ISBN
             });
             this.planningList.splice(index, 1);
             this.saveData();
         },
 
+        // --- 其他原有功能 ---
         addItem() {
             if (!this.newItem.name) return alert('請輸入名稱');
             this.inventory.push({ ...this.newItem });
@@ -309,7 +363,6 @@ createApp({
             this.saveData();
         },
         deleteItem(index) { if(confirm('確定刪除?')) { this.inventory.splice(index, 1); this.saveData(); } },
-
         addBill() {
             if (!this.newBill.amount) return alert('請輸入金額');
             this.bills.push({ ...this.newBill });
@@ -317,8 +370,6 @@ createApp({
             this.saveData();
         },
         deleteBill(index) { this.bills.splice(index, 1); this.saveData(); },
-
-        // --- Gemini ---
         selectItemForAnalysis(item) { this.selectedItem = item; this.pastedText = ''; },
         async analyzePrice() {
             if (!this.pastedText || !this.apiKey) return alert('請貼上文字');
@@ -333,7 +384,6 @@ createApp({
                 const data = await response.json();
                 const aiText = data.candidates[0].content.parts[0].text;
                 const result = JSON.parse(aiText.replace(/```json|```/g, '').trim());
-                
                 const index = this.inventory.indexOf(this.selectedItem);
                 if (index !== -1) {
                     this.inventory[index].latestPrice = result.price;
@@ -344,7 +394,6 @@ createApp({
                 }
             } catch (error) { alert('分析失敗'); } finally { this.isAnalyzing = false; }
         },
-        
         exportData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
                 inventory: this.inventory, planningList: this.planningList, bills: this.bills, apiKey: this.apiKey
