@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居庫存 v4.0</title>
+    <title>好男人智慧家居庫存 v4.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -13,23 +13,30 @@
         .nav-link.active { background-color: #0d6efd !important; color: white !important; }
         [v-cloak] { display: none; }
         .table-responsive { overflow-x: auto; }
+        /* 表格垂直置中 */
         .table > tbody > tr > td { vertical-align: middle; }
-        .category-tag { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; color: #666; display: inline-block; margin-right: 4px;}
-        .brand-tag { font-size: 0.7rem; padding: 2px 6px; background: #e3f2fd; border-radius: 4px; color: #0d6efd; display: inline-block;}
-        .item-name { font-weight: 600; font-size: 1rem; }
+        
+        /* 標籤樣式 */
+        .category-tag { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; color: #666; display: inline-block; margin-right: 4px; white-space: nowrap;}
+        .brand-tag { font-size: 0.7rem; padding: 2px 6px; background: #e3f2fd; border-radius: 4px; color: #0d6efd; display: inline-block; white-space: nowrap;}
+        
+        /* 物品名稱優化：允許換行 */
+        .item-name { font-weight: 600; font-size: 1rem; line-height: 1.4; word-break: break-word; white-space: normal; }
+        
         .price-tag { font-size: 0.9rem; color: #198754; font-weight: bold; }
-        .history-btn { font-size: 0.75rem; text-decoration: none; border-bottom: 1px dashed #999; color: #666; cursor: pointer;}
+        .unit-price { font-size: 0.75rem; color: #888; }
+        .history-btn { font-size: 0.75rem; text-decoration: none; border-bottom: 1px dashed #999; color: #666; cursor: pointer; white-space: nowrap;}
 
         /* 浮動操作列 */
         .floating-bar {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(5px);
-            padding: 10px 15px; border-radius: 16px;
+            padding: 10px 10px; border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            display: flex; gap: 12px; z-index: 1000; align-items: center;
-            border: 1px solid #dee2e6; width: 92%; max-width: 420px; justify-content: space-around;
+            display: flex; gap: 8px; z-index: 1000; align-items: center;
+            border: 1px solid #dee2e6; width: 95%; max-width: 450px; justify-content: space-around;
         }
-        .floating-btn { border: none; background: none; display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #555; cursor: pointer; width: 50px; }
+        .floating-btn { border: none; background: none; display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: #555; cursor: pointer; width: 55px; }
         .floating-btn i { font-size: 1.3rem; margin-bottom: 2px; }
         .floating-btn:active { transform: scale(0.95); }
 
@@ -42,7 +49,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居庫存 v4.0</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居庫存 v4.1</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存管理</a></li>
@@ -65,25 +72,28 @@
 
         <div class="card p-0 overflow-hidden">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 text-nowrap">
+                <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">物品 / 價格</th>
-                            <th class="text-center">庫存</th>
-                            <th class="text-center" style="width: 50px;">選</th>
+                            <th class="ps-3">物品資訊</th>
+                            <th class="text-center" style="min-width: 90px;">庫存</th>
+                            <th class="text-center" style="width: 40px;">選</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="item in filteredInventory" :key="item.id" :class="{'table-active': isSelected(item)}">
-                            <td class="ps-3" @click="toggleSelection(item)">
-                                <div>
+                            <td class="ps-3 py-3" @click="toggleSelection(item)">
+                                <div class="mb-1">
                                     <span class="category-tag">{{ getCategoryName(item.categoryId) }}</span>
                                     <span v-if="item.brand" class="brand-tag">{{ item.brand }}</span>
                                 </div>
-                                <div class="item-name text-truncate" style="max-width: 200px;">{{ item.name }}</div>
+                                <div class="item-name">{{ item.name }}</div>
                                 
-                                <div class="mt-1 d-flex align-items-center gap-2">
-                                    <span v-if="item.latestPrice" class="price-tag">${{ item.latestPrice }}</span>
+                                <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
+                                    <span v-if="item.latestPrice" class="price-tag">
+                                        ${{ item.latestPrice }} 
+                                        <span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span>
+                                    </span>
                                     <span v-else class="text-muted small">-</span>
                                     
                                     <span v-if="item.priceHistory && item.priceHistory.length > 0" 
@@ -91,18 +101,15 @@
                                         <i class="bi bi-graph-down"></i> 走勢
                                     </span>
                                 </div>
-                                <div class="small text-muted" style="font-size:0.75rem">
-                                    {{ item.priceDate ? item.priceDate : '' }} {{ item.unitPrice ? '('+item.unitPrice+')' : '' }}
-                                </div>
                             </td>
-                            <td class="text-center">
-                                <div class="btn-group btn-group-sm">
+                            <td class="text-center align-middle">
+                                <div class="btn-group btn-group-sm d-flex justify-content-center">
                                     <button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-2">-</button>
-                                    <button class="btn btn-light disabled text-dark fw-bold border-top border-bottom" style="width:35px">{{ item.stock }}</button>
+                                    <button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:30px">{{ item.stock }}</button>
                                     <button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-2">+</button>
                                 </div>
                             </td>
-                            <td class="text-center" @click="toggleSelection(item)">
+                            <td class="text-center align-middle" @click="toggleSelection(item)">
                                 <input type="checkbox" class="form-check-input" :checked="isSelected(item)">
                             </td>
                         </tr>
@@ -119,67 +126,41 @@
 
         <div v-if="selectedItems.length > 0" class="floating-bar">
             <button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button>
-            <button @click="actionWhatsApp" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button>
-            <button @click="actionShare" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button>
-            <button @click="actionCopy" class="floating-btn"><i class="bi bi-clipboard"></i> 複製</button>
+            <button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button>
+            <button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button>
+            <button @click="prepareExport('copy')" class="floating-btn"><i class="bi bi-clipboard"></i> 複製</button>
             <button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button>
         </div>
     </div>
 
     <div v-if="currentTab === 'expenses'">
         <div class="card p-3 mb-3 border-primary">
-            <h5 class="text-primary fw-bold"><i class="bi bi-journal-plus"></i> 新增支出/訂單</h5>
+            <h5 class="text-primary fw-bold"><i class="bi bi-journal-plus"></i> 新增支出</h5>
             <div class="row g-2">
-                <div class="col-6">
-                    <label class="small text-muted">日期</label>
-                    <input v-model="newExpense.date" type="date" class="form-control">
-                </div>
-                <div class="col-6">
-                    <label class="small text-muted">類別</label>
+                <div class="col-6"><label class="small text-muted">日期</label><input v-model="newExpense.date" type="date" class="form-control"></div>
+                <div class="col-6"><label class="small text-muted">類別</label>
                     <select v-model="newExpense.category" class="form-select">
-                        <option value="購物訂單">🛒 購物訂單</option>
-                        <option value="電費">⚡ 電費</option>
-                        <option value="水費">💧 水費</option>
-                        <option value="煤氣">🔥 煤氣費</option>
-                        <option value="寬頻/電話">📶 寬頻/電話</option>
-                        <option value="餐飲">🍽️ 餐飲/外賣</option>
-                        <option value="其他">📝 其他</option>
+                        <option value="購物訂單">🛒 購物訂單</option><option value="電費">⚡ 電費</option><option value="水費">💧 水費</option><option value="煤氣">🔥 煤氣費</option><option value="寬頻/電話">📶 寬頻/電話</option><option value="餐飲">🍽️ 餐飲</option><option value="其他">📝 其他</option>
                     </select>
                 </div>
-                <div class="col-6">
-                    <label class="small text-muted">金額</label>
-                    <input v-model.number="newExpense.amount" type="number" class="form-control" placeholder="$">
-                </div>
-                <div class="col-6">
-                    <label class="small text-muted">備註 (項目/店鋪)</label>
-                    <input v-model="newExpense.note" type="text" class="form-control" placeholder="例: 百佳, 淘寶...">
-                </div>
-                <div class="col-12 mt-2">
-                    <button @click="addExpense" class="btn btn-primary w-100">儲存紀錄</button>
-                </div>
+                <div class="col-6"><label class="small text-muted">金額</label><input v-model.number="newExpense.amount" type="number" class="form-control" placeholder="$"></div>
+                <div class="col-6"><label class="small text-muted">備註</label><input v-model="newExpense.note" type="text" class="form-control" placeholder="項目/店鋪"></div>
+                <div class="col-12 mt-2"><button @click="addExpense" class="btn btn-primary w-100">儲存</button></div>
             </div>
         </div>
-
         <div class="card p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">支出紀錄</h5>
-                <button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-file-earmark-excel"></i> 匯出 CSV
-                </button>
+                <h5 class="mb-0">紀錄列表</h5>
+                <button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> CSV</button>
             </div>
-            
             <div class="table-responsive">
                 <table class="table table-striped table-sm text-nowrap align-middle">
                     <thead><tr><th>日期</th><th>類別</th><th>金額</th><th>備註</th><th></th></tr></thead>
                     <tbody>
                         <tr v-for="(exp, index) in sortedExpenses" :key="index">
-                            <td>{{ exp.date }}</td>
-                            <td><span class="badge bg-light text-dark border">{{ exp.category }}</span></td>
-                            <td class="fw-bold">${{ exp.amount }}</td>
-                            <td class="text-muted small">{{ exp.note }}</td>
+                            <td>{{ exp.date }}</td><td><span class="badge bg-light text-dark border">{{ exp.category }}</span></td><td class="fw-bold">${{ exp.amount }}</td><td class="text-muted small">{{ exp.note }}</td>
                             <td><i @click="deleteExpense(index)" class="bi bi-x-circle text-danger" style="cursor:pointer"></i></td>
                         </tr>
-                        <tr v-if="expenses.length === 0"><td colspan="5" class="text-center py-3 text-muted">暫無支出紀錄</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -189,18 +170,16 @@
     <div v-if="currentTab === 'pricewatch'">
         <div class="card p-3 border-warning mb-3">
             <h5 class="text-warning-emphasis"><i class="bi bi-robot"></i> Gemini JSON 匯入</h5>
-            <textarea v-model="importJsonText" class="form-control mb-2" rows="2" placeholder='貼上 Gemini 給的 JSON...'></textarea>
-            <button @click="importFromJSON" class="btn btn-warning w-100">匯入並更新庫存</button>
-            <div class="form-text small">支援欄位：品牌、價格日期、價格</div>
+            <textarea v-model="importJsonText" class="form-control mb-2" rows="2" placeholder='貼上 JSON...'></textarea>
+            <button @click="importFromJSON" class="btn btn-warning w-100">匯入</button>
         </div>
         <div class="card p-3" :class="{ loading: isAnalyzing }">
             <h5>🤖 價格分析器</h5>
-            <div class="small text-muted mb-2">更新現有物品價格 (自動存入歷史紀錄)</div>
             <select v-model="selectedItemForAnalysis" class="form-select mb-2">
-                <option :value="null">-- 選擇物品 --</option>
+                <option :value="null">-- 選擇現有物品更新 --</option>
                 <option v-for="item in inventory" :value="item">{{ item.name }}</option>
             </select>
-            <textarea v-model="pastedText" class="form-control mb-2" rows="3" placeholder="貼上網頁價格文字..."></textarea>
+            <textarea v-model="pastedText" class="form-control mb-2" rows="3" placeholder="貼上網頁文字..."></textarea>
             <button @click="analyzePrice" class="btn btn-success w-100" :disabled="!apiKey || !selectedItemForAnalysis">分析並更新</button>
         </div>
     </div>
@@ -208,12 +187,37 @@
     <div v-if="currentTab === 'settings'">
         <div class="card p-3 mb-3">
             <h5>🔑 Gemini API Key</h5>
-            <input v-model="apiKey" type="password" class="form-control mb-2" placeholder="在此貼上 Key">
+            <input v-model="apiKey" type="password" class="form-control mb-2" placeholder="API Key">
             <button @click="saveSettings" class="btn btn-success w-100">儲存</button>
         </div>
         <div class="card p-3">
-            <button @click="exportData" class="btn btn-outline-primary w-100 mb-2">匯出完整備份 (JSON)</button>
+            <button @click="exportData" class="btn btn-outline-primary w-100 mb-2">匯出備份 JSON</button>
             <input type="file" @change="importData" class="form-control">
+        </div>
+    </div>
+
+    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">選擇傳送內容格式</h5>
+                    <button @click="showExportModal = false" class="btn-close"></button>
+                </div>
+                <div class="modal-body d-grid gap-2">
+                    <button @click="confirmExport('buy')" class="btn btn-outline-primary text-start">
+                        <div class="fw-bold">🛒 需購買清單</div>
+                        <div class="small text-muted">只列出名稱與現有庫存</div>
+                    </button>
+                    <button @click="confirmExport('inventory')" class="btn btn-outline-success text-start">
+                        <div class="fw-bold">📦 庫存清單</div>
+                        <div class="small text-muted">包含詳細價格、庫存量、單價</div>
+                    </button>
+                    <button @click="confirmExport('links')" class="btn btn-outline-info text-start">
+                        <div class="fw-bold">🔗 物品連結</div>
+                        <div class="small text-muted">列出商品網購連結</div>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -229,11 +233,11 @@
                         <div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div>
                         <div class="col-6"><label class="small">品牌 (Brand)</label><input v-model="editingForm.brand" class="form-control" placeholder="例: 維他"></div>
                     </div>
-                    <div class="mb-2"><label class="small">名稱</label><input v-model="editingForm.name" class="form-control"></div>
+                    <div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div>
                     <div class="row g-2 mb-2">
                         <div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div>
-                        <div class="col-4"><label class="small">現價 ($)</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div>
-                        <div class="col-4"><label class="small">查價日期</label><input v-model="editingForm.priceDate" type="date" class="form-control"></div>
+                        <div class="col-4"><label class="small">總價($)</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div>
+                        <div class="col-4"><label class="small">單價備註</label><input v-model="editingForm.unitPrice" class="form-control" placeholder="例:2.5/包"></div>
                     </div>
                     <div class="mb-2"><label class="small">條碼 (ISBN)</label><input v-model="editingForm.isbn" class="form-control"></div>
                     <div class="mb-2"><label class="small">網址 URL</label><input v-model="editingForm.url" class="form-control"></div>
@@ -250,7 +254,7 @@
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title">📉 價格歷史: {{ historyItem.name }}</h6>
+                    <h6 class="modal-title">📉 價格歷史</h6>
                     <button @click="showHistoryModal = false" class="btn-close"></button>
                 </div>
                 <div class="modal-body p-0">
@@ -258,11 +262,7 @@
                         <thead><tr><th>日期</th><th>價格</th></tr></thead>
                         <tbody>
                             <tr v-for="rec in historyItem.priceHistory" :key="rec.date">
-                                <td>{{ rec.date }}</td>
-                                <td class="fw-bold">${{ rec.price }}</td>
-                            </tr>
-                            <tr v-if="!historyItem.priceHistory || historyItem.priceHistory.length === 0">
-                                <td colspan="2" class="text-muted small py-2">無歷史紀錄</td>
+                                <td>{{ rec.date }}</td><td class="fw-bold">${{ rec.price }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -282,25 +282,22 @@ createApp({
             currentTab: 'inventory',
             apiKey: '',
             searchQuery: '',
-            
-            // 資料庫
             inventory: [],
-            expenses: [], // 統一的支出/帳單紀錄
-            
-            // UI 狀態
+            expenses: [],
             selectedIds: [],
-            showAddModal: false, showEditModal: false, showHistoryModal: false,
+            
+            // UI Controls
+            showAddModal: false, showEditModal: false, showHistoryModal: false, showExportModal: false,
+            exportActionType: '', // 'whatsapp', 'share', 'copy'
             editingForm: {}, historyItem: {},
             
-            // Gemini & Import
+            // Gemini
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null,
             newExpense: { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: '', note: '' },
             
             categories: [
-                { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' },
-                { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' },
-                { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' },
-                { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' }
+                { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' },
+                { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' }
             ]
         };
     },
@@ -321,40 +318,18 @@ createApp({
     methods: {
         saveData() { localStorage.setItem('goodHusbandDB_v4', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey })); },
         loadData() {
-            // v4 讀取
-            let data = localStorage.getItem('goodHusbandDB_v4');
+            let data = localStorage.getItem('goodHusbandDB_v4') || localStorage.getItem('homeInventoryDB_v3');
             if (data) {
                 let p = JSON.parse(data);
                 this.inventory = p.inventory || [];
-                this.expenses = p.expenses || [];
+                this.expenses = p.expenses || (p.bills ? p.bills.map(b=>({date:b.date,category:b.type,amount:b.amount,note:'舊資料'})) : []);
                 this.apiKey = p.apiKey || '';
-            } else {
-                // v3 遷移
-                let v3 = localStorage.getItem('homeInventoryDB_v3');
-                if (v3) {
-                    let p = JSON.parse(v3);
-                    this.inventory = p.inventory || [];
-                    this.apiKey = p.apiKey || '';
-                    // 將舊版 bills 轉換為新版 expenses
-                    if (p.bills) {
-                        p.bills.forEach(b => {
-                            this.expenses.push({
-                                date: b.date,
-                                category: b.type, // e.g., '電費'
-                                amount: b.amount,
-                                note: '舊紀錄遷移'
-                            });
-                        });
-                    }
-                    alert('已升級至 v4.0 好男人系統！舊帳單已整合至「家庭支出」。');
-                    this.saveData();
-                }
             }
         },
         saveSettings() { this.saveData(); alert('設定已儲存！'); },
         getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
-
-        // --- 庫存選取 ---
+        
+        // --- Selection ---
         isSelected(item) { return this.selectedIds.includes(item.id); },
         toggleSelection(item) {
             const id = item.id;
@@ -363,17 +338,33 @@ createApp({
         },
         selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
 
-        // --- 浮動操作 ---
-        actionWhatsApp() {
-            const text = "🛒 需購買清單：\n" + this.selectedItems.map(i => `- ${i.name} (${i.brand||''}) 庫存:${i.stock}`).join('\n');
-            window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+        // --- 匯出功能 (New v4.1) ---
+        prepareExport(type) {
+            this.exportActionType = type;
+            this.showExportModal = true;
         },
-        actionShare() {
-            const text = "🛒 庫存清單：\n" + this.selectedItems.map(i => `${i.name}`).join('\n');
-            if (navigator.share) navigator.share({title:'庫存', text:text});
-            else alert("不支援分享");
+        confirmExport(format) {
+            this.showExportModal = false;
+            let text = "";
+            
+            if (format === 'buy') {
+                text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n');
+            } else if (format === 'inventory') {
+                text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name}\n  [${i.brand||'無'}] 庫存:${i.stock} | $${i.latestPrice||'-'} (${i.unitPrice||'-'})`).join('\n');
+            } else if (format === 'links') {
+                text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n');
+            }
+
+            if (this.exportActionType === 'whatsapp') {
+                window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
+            } else if (this.exportActionType === 'share') {
+                if (navigator.share) navigator.share({title:'庫存分享', text:text});
+                else alert("不支援分享");
+            } else if (this.exportActionType === 'copy') {
+                navigator.clipboard.writeText(text).then(()=>alert('已複製到剪貼簿'));
+            }
         },
-        actionCopy() { navigator.clipboard.writeText(this.selectedItems.map(i=>i.name).join('\n')).then(()=>alert('已複製')); },
+
         actionDelete() {
             if(!confirm('刪除選取項目？')) return;
             this.inventory = this.inventory.filter(i => !this.selectedIds.includes(i.id));
@@ -385,28 +376,21 @@ createApp({
             this.showEditModal = true;
         },
 
-        // --- 新增/編輯/歷史 ---
-        openAddModal() { this.editingForm = { categoryId: '99', stock: 1, brand: '', priceDate: new Date().toISOString().split('T')[0] }; this.showAddModal = true; },
+        // --- CRUD ---
+        openAddModal() { this.editingForm = { categoryId: '99', stock: 1, brand: '', unitPrice: '' }; this.showAddModal = true; },
         closeModal() { this.showAddModal = false; this.showEditModal = false; this.editingForm = {}; },
         saveItem() {
             if(!this.editingForm.name) return alert('名稱必填');
-            
-            // 處理價格歷史
-            const saveHistory = (item, newPrice, date) => {
-                if(!item.priceHistory) item.priceHistory = [];
-                // 如果價格變了，才記錄
-                if (item.latestPrice && item.latestPrice != newPrice) {
-                    item.priceHistory.push({ date: item.priceDate || '舊紀錄', price: item.latestPrice });
-                }
-                // 排序並只留最近 10 筆
-                item.priceHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
-                if(item.priceHistory.length > 10) item.priceHistory = item.priceHistory.slice(0,10);
-            };
-
             if (this.showEditModal) {
                 const idx = this.inventory.findIndex(i => i.id === this.editingForm.id);
                 if (idx !== -1) {
-                    saveHistory(this.inventory[idx], this.editingForm.latestPrice);
+                    // History check
+                    if (this.inventory[idx].latestPrice && this.inventory[idx].latestPrice != this.editingForm.latestPrice) {
+                         if(!this.inventory[idx].priceHistory) this.inventory[idx].priceHistory = [];
+                         this.inventory[idx].priceHistory.push({date: new Date().toISOString().split('T')[0], price: this.inventory[idx].latestPrice});
+                    }
+                    // 保留 history
+                    this.editingForm.priceHistory = this.inventory[idx].priceHistory;
                     this.inventory[idx] = { ...this.editingForm };
                 }
             } else {
@@ -418,7 +402,7 @@ createApp({
         updateStock(item, change) { item.stock = Math.max(0, (item.stock||0)+change); this.saveData(); },
         viewHistory(item) { this.historyItem = item; this.showHistoryModal = true; },
 
-        // --- 支出管理 (Expenses) ---
+        // --- Expenses ---
         addExpense() {
             if(!this.newExpense.amount) return alert('金額必填');
             this.expenses.push({ ...this.newExpense });
@@ -428,14 +412,12 @@ createApp({
         deleteExpense(idx) { if(confirm('刪除紀錄？')) { this.expenses.splice(idx, 1); this.saveData(); } },
         exportExpenseCSV() {
             let csv = "\uFEFF日期,類別,金額,備註\n";
-            this.sortedExpenses.forEach(e => {
-                csv += `${e.date},${e.category},${e.amount},"${e.note||''}"\n`;
-            });
+            this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},${e.amount},"${e.note||''}"\n`);
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-            a.download = "family_expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
+            a.download = "expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
         },
 
-        // --- Gemini & Import ---
+        // --- Gemini ---
         importFromJSON() {
             try {
                 const list = JSON.parse(this.importJsonText);
@@ -449,36 +431,32 @@ createApp({
                     this.inventory.push(...list);
                     this.importJsonText = ''; this.saveData(); alert(`匯入 ${list.length} 筆`);
                 }
-            } catch(e) { alert('JSON 格式錯誤'); }
+            } catch(e) { alert('JSON 錯誤'); }
         },
         async analyzePrice() {
             if(!this.pastedText || !this.apiKey) return alert('請填寫');
             this.isAnalyzing = true;
             try {
-                const prompt = `分析商品文字: "${this.pastedText}"，回傳JSON: {"price": 數字, "unitPrice": "簡短備註", "brand": "品牌"}`;
+                const prompt = `分析商品文字: "${this.pastedText}"，回傳JSON: {"price": 數字, "unitPrice": "簡短單價如 2.5/包", "brand": "品牌"}`;
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
                     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
                 });
                 const data = await res.json();
                 const result = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
                 
-                // 更新邏輯
                 const item = this.selectedItemForAnalysis;
-                // 紀錄舊價格
                 if(item.latestPrice && item.latestPrice != result.price) {
                      if(!item.priceHistory) item.priceHistory = [];
-                     item.priceHistory.push({date: item.priceDate || new Date().toISOString().split('T')[0], price: item.latestPrice});
+                     item.priceHistory.push({date: new Date().toISOString().split('T')[0], price: item.latestPrice});
                 }
                 item.latestPrice = result.price;
-                item.unitPrice = result.unitPrice;
+                item.unitPrice = result.unitPrice; // 更新單價
                 item.brand = result.brand || item.brand;
-                item.priceDate = new Date().toISOString().split('T')[0];
                 
-                this.saveData(); alert(`價格已更新: $${result.price}`);
+                this.saveData(); alert(`更新: $${result.price}`);
             } catch(e) { alert('分析失敗'); } finally { this.isAnalyzing = false; }
         },
-
-        // --- 系統備份 ---
+        // Backup
         exportData() {
             const a = document.createElement('a'); 
             a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey }));
