@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v5.0</title>
+    <title>好男人智慧家居 v5.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -36,20 +36,19 @@
         .floating-btn { border: none; background: none; display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: #555; cursor: pointer; width: 55px; }
         .floating-btn i { font-size: 1.3rem; margin-bottom: 2px; }
         
-        /* 搜尋框 */
         .search-box { position: relative; }
         .search-box i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; }
         .search-box input { padding-left: 35px; border-radius: 20px; }
 
-        /* 購物車區塊 */
+        /* 購物車與折扣區塊 */
         .cart-item { background: #fdfdfe; border-bottom: 1px solid #eee; padding: 8px; font-size: 0.9rem; }
-        .cart-total { font-size: 1.2rem; color: #dc3545; font-weight: bold; }
+        .cart-summary { background-color: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.0</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v5.1</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 庫存</a></li>
@@ -127,7 +126,11 @@
 
     <div v-if="currentTab === 'expenses'">
         <div class="card p-3 mb-3 border-primary">
-            <h5 class="text-primary fw-bold"><i class="bi bi-cart-plus"></i> 新增支出 / 訂單</h5>
+            <h5 class="text-primary fw-bold">
+                <i class="bi bi-cart-plus"></i> {{ isEditingExpense ? '編輯紀錄' : '新增支出 / 訂單' }}
+                <button v-if="isEditingExpense" @click="cancelEditExpense" class="btn btn-sm btn-outline-secondary float-end">取消</button>
+            </h5>
+            
             <div class="row g-2">
                 <div class="col-6"><label class="small text-muted">日期</label><input v-model="newExpense.date" type="date" class="form-control"></div>
                 <div class="col-6"><label class="small text-muted">類別</label>
@@ -136,47 +139,81 @@
                     </select>
                 </div>
 
-                <div class="col-12">
-                    <label class="small text-muted">訂單號碼 / 付款參考</label>
-                    <input v-model="newExpense.refNumber" class="form-control" placeholder="例: HKTV-12345678">
-                </div>
+                <div v-if="newExpense.category === '購物訂單'" class="col-12 mt-2">
+                    <div class="bg-light p-2 rounded border">
+                        <label class="small fw-bold mb-1">選擇物品:</label>
+                        <div class="input-group mb-2">
+                            <select v-model="selectedInventoryItem" class="form-select">
+                                <option :value="null">-- 請選擇 --</option>
+                                <option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option>
+                            </select>
+                            <input v-model.number="tempQty" type="number" class="form-control" placeholder="數量" style="max-width: 80px;" min="1">
+                            <button @click="addCartItem" class="btn btn-primary" :disabled="!selectedInventoryItem">加入</button>
+                        </div>
 
-                <div v-if="newExpense.category === '購物訂單'" class="col-12 mt-2 bg-light p-2 rounded border">
-                    <label class="small fw-bold mb-1">加入訂單明細 (從庫存選取):</label>
-                    <div class="input-group mb-2">
-                        <select v-model="selectedInventoryItem" class="form-select">
-                            <option :value="null">-- 請選擇物品 --</option>
-                            <option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option>
-                        </select>
-                        <button @click="addCartItem" class="btn btn-outline-primary" :disabled="!selectedInventoryItem">加入</button>
-                    </div>
-
-                    <div v-if="newExpense.items && newExpense.items.length > 0">
-                        <div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div>{{ cartItem.name }}</div>
-                                <div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div>
+                        <div v-if="newExpense.items && newExpense.items.length > 0">
+                            <div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center">
+                                <div style="flex-grow: 1;">
+                                    <div>{{ cartItem.name }}</div>
+                                    <div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div>
+                                </div>
+                                <div class="text-end" style="min-width: 60px;">
+                                    <span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span>
+                                    <i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2 fs-5" style="cursor:pointer; vertical-align: middle;"></i>
+                                </div>
                             </div>
-                            <i @click="removeCartItem(idx)" class="bi bi-x text-danger" style="cursor:pointer"></i>
-                        </div>
-                        <div class="text-end mt-2">
-                            小計: <span class="fw-bold text-primary">${{ calculateCartTotal() }}</span>
                         </div>
                     </div>
-                    <div v-else class="text-center text-muted small py-2">尚未加入物品</div>
                 </div>
 
-                <div class="col-6"><label class="small text-muted">總金額</label><input v-model.number="newExpense.amount" type="number" class="form-control" placeholder="$"></div>
-                <div class="col-6"><label class="small text-muted">備註/店鋪</label><input v-model="newExpense.note" type="text" class="form-control" placeholder="例: 百佳"></div>
+                <div class="col-12 mt-2">
+                     <div class="cart-summary border p-2 rounded bg-white">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-5">
+                                <label class="small text-muted">折扣/優惠</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">- $</span>
+                                    <input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="col-7 text-end">
+                                <label class="small text-muted d-block">實付金額</label>
+                                <div class="fs-4 fw-bold text-danger">
+                                    ${{ calculatedTotalAmount }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="small text-muted">店鋪 / 備註</label>
+                    <div class="input-group">
+                        <select v-model="selectedStore" class="form-select">
+                            <option v-for="store in storeOptions" :value="store">{{ store }}</option>
+                            <option value="other">其他 (手動輸入)...</option>
+                        </select>
+                        <input v-if="selectedStore === 'other'" v-model="customStoreInput" type="text" class="form-control" placeholder="輸入店名">
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="small text-muted">單號 / 付款參考 (選填)</label>
+                    <input v-model="newExpense.refNumber" class="form-control" placeholder="例: HKTV-8888">
+                </div>
                 
-                <div class="col-12 mt-2"><button @click="addExpense" class="btn btn-primary w-100">儲存紀錄</button></div>
+                <div class="col-12 mt-3">
+                    <button @click="saveExpense" class="btn w-100" :class="isEditingExpense ? 'btn-warning' : 'btn-primary'">
+                        {{ isEditingExpense ? '更新紀錄' : '儲存紀錄' }}
+                    </button>
+                </div>
             </div>
         </div>
 
         <div class="card p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">支出紀錄</h5>
-                <button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> 匯出 CSV</button>
+                <h5 class="mb-0">紀錄列表</h5>
+                <button @click="exportExpenseCSV" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> CSV</button>
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-sm text-nowrap align-middle">
@@ -189,11 +226,9 @@
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border">{{ exp.category }}</span>
-                                <div v-if="exp.refNumber" class="small text-muted mt-1" style="font-size:0.7rem">#{{ exp.refNumber }}</div>
+                                <div v-if="exp.refNumber" class="small text-muted" style="font-size:0.7rem">#{{ exp.refNumber }}</div>
                             </td>
-                            <td class="fw-bold">
-                                ${{ exp.amount }}
-                            </td>
+                            <td class="fw-bold">${{ exp.amount }}</td>
                             <td>
                                 <button v-if="exp.items && exp.items.length > 0" @click="viewOrderDetails(exp)" class="btn btn-xs btn-outline-info me-1">
                                     <i class="bi bi-file-text"></i> 明細
@@ -233,28 +268,11 @@
         <div class="card p-3">
             <h5>💾 資料庫管理</h5>
             <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 p-2">
-                        <i class="bi bi-filetype-json fs-4"></i><br><span class="small">完整備份</span>
-                    </button>
-                </div>
-                <div class="col-6">
-                    <button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 p-2">
-                        <i class="bi bi-filetype-csv fs-4"></i><br><span class="small">庫存 CSV</span>
-                    </button>
-                </div>
+                <div class="col-6"><button @click="exportData('json')" class="btn btn-outline-primary w-100 h-100 p-2"><i class="bi bi-filetype-json fs-4"></i><br><span class="small">完整備份</span></button></div>
+                <div class="col-6"><button @click="exportData('csv')" class="btn btn-outline-success w-100 h-100 p-2"><i class="bi bi-filetype-csv fs-4"></i><br><span class="small">庫存 CSV</span></button></div>
             </div>
-            
-            <label class="form-label fw-bold">📥 匯入資料 (自動偵測)</label>
-            <input type="file" @change="importData" class="form-control" accept=".json,.csv,.txt">
-            <div class="form-text small mt-2">
-                支援格式：
-                <ul>
-                    <li><b>JSON</b>：完整還原所有資料。</li>
-                    <li><b>庫存 CSV</b>：更新物品庫存。</li>
-                    <li><b>支出 CSV</b>：匯入支出紀錄 (需含 日期,類別,金額)。</li>
-                </ul>
-            </div>
+            <label class="form-label fw-bold">📥 匯入資料</label>
+            <input type="file" @change="importData" class="form-control" accept=".json,.csv">
         </div>
     </div>
 
@@ -280,21 +298,29 @@
                 </div>
                 <div class="modal-body p-0">
                     <div class="p-3 border-bottom">
-                        <div class="fw-bold">{{ viewingOrder.date }} - {{ viewingOrder.note }}</div>
+                        <div class="d-flex justify-content-between">
+                            <div class="fw-bold">{{ viewingOrder.date }}</div>
+                            <button @click="editOrderFromModal" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> 編輯此單</button>
+                        </div>
+                        <div class="mt-1">{{ viewingOrder.note }}</div>
                         <div class="small text-muted" v-if="viewingOrder.refNumber">單號: {{ viewingOrder.refNumber }}</div>
                     </div>
                     <table class="table table-sm mb-0">
-                        <thead class="table-light"><tr><th>物品</th><th>品牌</th><th>價格</th></tr></thead>
+                        <thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead>
                         <tbody>
                             <tr v-for="(itm, idx) in viewingOrder.items" :key="idx">
                                 <td>{{ itm.name }}</td>
-                                <td><span class="badge bg-light text-dark border">{{ itm.brand }}</span></td>
-                                <td class="text-end pe-3">${{ itm.price }}</td>
+                                <td>${{ itm.price }} x {{ itm.qty }}</td>
+                                <td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="table-group-divider">
+                            <tr v-if="viewingOrder.discount > 0">
+                                <td colspan="2" class="text-end text-muted">折扣:</td>
+                                <td class="text-end pe-3 text-muted">- ${{ viewingOrder.discount }}</td>
+                            </tr>
                             <tr>
-                                <td colspan="2" class="text-end fw-bold">總計:</td>
+                                <td colspan="2" class="text-end fw-bold">實付總計:</td>
                                 <td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td>
                             </tr>
                         </tfoot>
@@ -308,7 +334,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">{{ showEditModal ? '編輯物品' : '新增物品' }}</h5>
+                    <h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5>
                     <button @click="closeModal" class="btn-close"></button>
                 </div>
                 <div class="modal-body">
@@ -320,15 +346,11 @@
                     <div class="row g-2 mb-2">
                         <div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div>
                         <div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div>
-                        <div class="col-4"><label class="small">單價備註</label><input v-model="editingForm.unitPrice" class="form-control"></div>
+                        <div class="col-4"><label class="small">單價</label><input v-model="editingForm.unitPrice" class="form-control"></div>
                     </div>
-                    <div class="mb-2"><label class="small">條碼 (ISBN)</label><input v-model="editingForm.isbn" class="form-control"></div>
-                    <div class="mb-2"><label class="small">網址 URL</label><input v-model="editingForm.url" class="form-control"></div>
+                    <div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div>
                 </div>
-                <div class="modal-footer">
-                    <button @click="closeModal" class="btn btn-secondary">取消</button>
-                    <button @click="saveItem" class="btn btn-primary">儲存</button>
-                </div>
+                <div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div>
             </div>
         </div>
     </div>
@@ -344,21 +366,28 @@ createApp({
             currentTab: 'expenses', apiKey: '', searchQuery: '',
             inventory: [], expenses: [], selectedIds: [],
             
-            // Modal States
+            // Modal & Editing
             showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false,
             exportActionType: '', editingForm: {}, viewingOrder: {},
             
-            // Gemini & Import
+            // Gemini
             importJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null,
             
             // Expense & Cart Form
-            newExpense: { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: '', note: '', refNumber: '', items: [] },
-            selectedInventoryItem: null, // 用於購物車下拉選單
-            
+            newExpense: { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: 0, note: '', refNumber: '', items: [], discount: 0 },
+            selectedInventoryItem: null,
+            tempQty: 1, // 購物車暫存數量
+            selectedStore: '惠康', // 預設店鋪
+            customStoreInput: '', // 手動輸入
+            isEditingExpense: false, // 是否正在編輯模式
+            editingExpenseIndex: -1, // 正在編輯的索引
+
+            // Options
             categories: [
                 { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' },
                 { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' }
-            ]
+            ],
+            storeOptions: ['惠康', '百佳', '759阿信屋', 'HKTVmall', '屈臣氏', '萬寧']
         };
     },
     computed: {
@@ -372,13 +401,21 @@ createApp({
             });
         },
         selectedItems() { return this.inventory.filter(item => this.selectedIds.includes(item.id)); },
-        sortedExpenses() { return this.expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); }
+        sortedExpenses() { return this.expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); },
+        
+        // 自動計算實付金額 (唯讀顯示用)
+        calculatedTotalAmount() {
+            if (this.newExpense.category !== '購物訂單') return this.newExpense.amount;
+            const itemsTotal = (this.newExpense.items || []).reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const discount = this.newExpense.discount || 0;
+            return Math.max(0, itemsTotal - discount).toFixed(1); // 確保不為負
+        }
     },
     mounted() { this.loadData(); },
     methods: {
-        saveData() { localStorage.setItem('goodHusbandDB_v5', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey })); },
+        saveData() { localStorage.setItem('goodHusbandDB_v5_1', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey })); },
         loadData() {
-            let data = localStorage.getItem('goodHusbandDB_v5') || localStorage.getItem('goodHusbandDB_v4');
+            let data = localStorage.getItem('goodHusbandDB_v5_1') || localStorage.getItem('goodHusbandDB_v5');
             if (data) {
                 let p = JSON.parse(data);
                 this.inventory = p.inventory || [];
@@ -389,12 +426,12 @@ createApp({
         saveSettings() { this.saveData(); alert('設定已儲存！'); },
         getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
         
-        // --- Selection ---
+        // --- Inventory Selection ---
         isSelected(item) { return this.selectedIds.includes(item.id); },
         toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); },
         selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
 
-        // --- Export Actions ---
+        // --- Export ---
         prepareExport(type) { this.exportActionType = type; this.showExportModal = true; },
         confirmExport(format) {
             this.showExportModal = false;
@@ -426,148 +463,126 @@ createApp({
         actionEdit() { if(this.selectedItems.length!==1) return; this.editingForm = JSON.parse(JSON.stringify(this.selectedItems[0])); this.showEditModal = true; },
         updateStock(item, change) { item.stock = Math.max(0, (item.stock||0)+change); this.saveData(); },
 
-        // --- Expenses & Shopping Cart (New) ---
+        // --- Cart Logic (Updated) ---
         addCartItem() {
             if (!this.selectedInventoryItem) return;
-            // 建立明細紀錄 (Snapshop)
-            const item = this.selectedInventoryItem;
+            if (this.tempQty < 1) return alert('數量至少為 1');
+            
             if (!this.newExpense.items) this.newExpense.items = [];
             
             this.newExpense.items.push({
-                itemId: item.id,
-                name: item.name,
-                brand: item.brand || '',
-                price: item.latestPrice || 0,
-                qty: 1
+                itemId: this.selectedInventoryItem.id,
+                name: this.selectedInventoryItem.name,
+                brand: this.selectedInventoryItem.brand || '',
+                price: this.selectedInventoryItem.latestPrice || 0,
+                qty: this.tempQty // 使用手動輸入的數量
             });
-            // 自動計算總額
-            this.newExpense.amount = this.calculateCartTotal();
-            this.selectedInventoryItem = null; // 重置選擇
+            this.tempQty = 1; // 重置
+            this.selectedInventoryItem = null;
         },
         removeCartItem(idx) {
             this.newExpense.items.splice(idx, 1);
-            this.newExpense.amount = this.calculateCartTotal();
         },
-        calculateCartTotal() {
-            if (!this.newExpense.items) return 0;
-            return this.newExpense.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        },
-        addExpense() {
-            if(!this.newExpense.amount) return alert('金額必填');
-            this.newExpense.id = Date.now().toString() + Math.random().toString(36).substr(2,5); // 給予唯一ID
-            this.expenses.push({ ...this.newExpense });
-            // Reset
-            this.newExpense = { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: '', note: '', refNumber: '', items: [] };
+
+        // --- Expense Management (Updated) ---
+        saveExpense() {
+            // 處理店鋪名稱
+            let storeName = this.selectedStore;
+            if (storeName === 'other') storeName = this.customStoreInput || '其他';
+            this.newExpense.note = storeName;
+
+            // 處理金額 (如果是購物訂單，使用自動計算值)
+            if (this.newExpense.category === '購物訂單') {
+                 this.newExpense.amount = parseFloat(this.calculatedTotalAmount);
+            }
+            if(!this.newExpense.amount && this.newExpense.amount !== 0) return alert('金額必填');
+
+            // 儲存邏輯
+            if (this.isEditingExpense) {
+                // 更新模式
+                this.expenses[this.editingExpenseIndex] = { ...this.newExpense };
+                alert('紀錄已更新');
+            } else {
+                // 新增模式
+                this.newExpense.id = Date.now().toString() + Math.random().toString(36).substr(2,5);
+                this.expenses.push({ ...this.newExpense });
+                
+                // 庫存入帳提示 (只在新增時提示)
+                if (this.newExpense.category === '購物訂單' && this.newExpense.items && this.newExpense.items.length > 0) {
+                    if (confirm(`儲存成功！\n是否要將這 ${this.newExpense.items.length} 項商品的數量加入庫存？`)) {
+                        this.updateInventoryFromOrder(this.newExpense.items);
+                    }
+                }
+            }
+
+            this.resetExpenseForm();
             this.saveData();
         },
+        updateInventoryFromOrder(items) {
+            let count = 0;
+            items.forEach(orderItem => {
+                const invItem = this.inventory.find(i => i.id === orderItem.itemId);
+                if (invItem) {
+                    invItem.stock = (invItem.stock || 0) + orderItem.qty;
+                    count++;
+                }
+            });
+            alert(`已更新 ${count} 個庫存項目的數量。`);
+        },
         deleteExpense(idx) { if(confirm('刪除紀錄？')) { this.expenses.splice(idx, 1); this.saveData(); } },
+        
         viewOrderDetails(exp) {
             this.viewingOrder = exp;
             this.showOrderDetailModal = true;
         },
+        
+        // 編輯訂單 (從 Modal 觸發)
+        editOrderFromModal() {
+            this.showOrderDetailModal = false; // 關閉 Modal
+            
+            // 載入資料到表單
+            this.newExpense = JSON.parse(JSON.stringify(this.viewingOrder));
+            
+            // 設定店鋪下拉選單狀態
+            if (this.storeOptions.includes(this.newExpense.note)) {
+                this.selectedStore = this.newExpense.note;
+            } else {
+                this.selectedStore = 'other';
+                this.customStoreInput = this.newExpense.note;
+            }
+
+            // 設定編輯狀態
+            this.isEditingExpense = true;
+            this.editingExpenseIndex = this.expenses.findIndex(e => e.id === this.viewingOrder.id);
+            
+            // 滾動到頂部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        cancelEditExpense() {
+            this.resetExpenseForm();
+        },
+        resetExpenseForm() {
+            this.newExpense = { date: new Date().toISOString().split('T')[0], category: '購物訂單', amount: 0, note: '', refNumber: '', items: [], discount: 0 };
+            this.selectedInventoryItem = null;
+            this.tempQty = 1;
+            this.isEditingExpense = false;
+            this.editingExpenseIndex = -1;
+            this.selectedStore = '惠康';
+            this.customStoreInput = '';
+        },
+        
         exportExpenseCSV() {
-            // 加入 refNumber 欄位
             let csv = "\uFEFF日期,類別,金額,單號,備註\n";
             this.sortedExpenses.forEach(e => csv += `${e.date},${e.category},${e.amount},"${e.refNumber||''}", "${e.note||''}"\n`);
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
             a.download = "family_expenses.csv"; document.body.appendChild(a); a.click(); a.remove();
         },
 
-        // --- Gemini ---
-        importFromJSON() {
-            try {
-                const list = JSON.parse(this.importJsonText);
-                if(Array.isArray(list)) {
-                    list.forEach(i => { i.id = Date.now() + Math.random().toString(36).substr(2,5); i.stock = 0; });
-                    this.inventory.push(...list); this.importJsonText = ''; this.saveData(); alert(`匯入 ${list.length} 筆`);
-                }
-            } catch(e) { alert('JSON 錯誤'); }
-        },
-        async analyzePrice() {
-            if(!this.pastedText || !this.apiKey) return alert('請填寫');
-            this.isAnalyzing = true;
-            try {
-                const prompt = `分析商品: "${this.pastedText}"，回傳JSON: {"price": 數字, "unitPrice": "文字", "brand": "文字"}`;
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
-                    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-                });
-                const data = await res.json();
-                const result = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
-                this.selectedItemForAnalysis.latestPrice = result.price;
-                this.selectedItemForAnalysis.unitPrice = result.unitPrice;
-                this.selectedItemForAnalysis.brand = result.brand;
-                this.saveData(); alert(`更新: $${result.price}`);
-            } catch(e) { alert('分析失敗'); } finally { this.isAnalyzing = false; }
-        },
-
-        // --- Import/Export Data ---
-        exportData(type) {
-            if (type === 'json') {
-                const data = JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey });
-                const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(data);
-                a.download = "good_husband_backup.json"; document.body.appendChild(a); a.click(); a.remove();
-            } else if (type === 'csv') {
-                let csv = "\uFEFFid,分類,品牌,名稱,庫存,價格,單價備註,ISBN,網址\n";
-                this.inventory.forEach(i => {
-                    const row = [i.id, i.categoryId, i.brand, i.name, i.stock, i.latestPrice, i.unitPrice, i.isbn, i.url].map(f => `"${String(f||'').replace(/"/g,'""')}"`).join(',');
-                    csv += row + "\n";
-                });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-                a.download = "inventory_list.csv"; document.body.appendChild(a); a.click(); a.remove();
-            }
-        },
-        importData(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const content = evt.target.result;
-                // 1. JSON (Backup)
-                if (file.name.endsWith('.json')) {
-                    try {
-                        const p = JSON.parse(content);
-                        this.inventory = p.inventory || [];
-                        this.expenses = p.expenses || [];
-                        this.apiKey = p.apiKey || '';
-                        this.saveData(); alert('還原成功！');
-                    } catch(err) { alert('JSON 錯誤'); }
-                    return;
-                }
-                
-                // 2. CSV Import (Auto-Detect Inventory vs Expenses)
-                const lines = content.trim().split(/\r?\n/);
-                if (lines.length < 2) return alert('檔案過短');
-                const headerLine = lines[0];
-                
-                // 判斷是「支出」還是「庫存」
-                if (headerLine.includes('類別') && headerLine.includes('金額')) {
-                    // --- 匯入支出 (Expenses) ---
-                    let count = 0;
-                    for(let i=1; i<lines.length; i++) {
-                        const cols = lines[i].split(',').map(s => s.replace(/^"|"$/g, '')); // 簡易CSV解析
-                        if(cols.length >= 3) {
-                            this.expenses.push({
-                                id: Date.now() + Math.random().toString(36),
-                                date: cols[0],
-                                category: cols[1],
-                                amount: parseFloat(cols[2]),
-                                refNumber: cols[3] || '',
-                                note: cols[4] || 'CSV匯入'
-                            });
-                            count++;
-                        }
-                    }
-                    this.saveData(); alert(`已匯入 ${count} 筆支出紀錄`);
-                } else {
-                    // --- 匯入庫存 (Inventory) ---
-                    alert('偵測為庫存 CSV，將執行庫存更新...');
-                    // (這裡簡化重用之前的 CSV 邏輯，或提示使用者請使用 JSON 還原完整結構)
-                    // ...CSV parsing logic...
-                    // 為保持代碼簡潔，此處略過重複的 CSV 解析代碼，建議用 JSON 做完整備份
-                }
-            };
-            reader.readAsText(file);
-        }
+        // --- Gemini & Others ---
+        importFromJSON() { try { const list = JSON.parse(this.importJsonText); if(Array.isArray(list)) { list.forEach(i => { i.id = Date.now()+Math.random().toString(36).substr(2,5); i.stock=0; }); this.inventory.push(...list); this.importJsonText=''; this.saveData(); alert(`匯入 ${list.length}`); } } catch(e){alert('JSON 錯誤');} },
+        async analyzePrice() { if(!this.pastedText||!this.apiKey)return alert('請填寫'); this.isAnalyzing=true; try{ const prompt=`分析商品:"${this.pastedText}" JSON:{"price":數,"unitPrice":"文","brand":"文"}`; const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})}); const data=await res.json(); const r=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim()); this.selectedItemForAnalysis.latestPrice=r.price; this.selectedItemForAnalysis.unitPrice=r.unitPrice; this.selectedItemForAnalysis.brand=r.brand; this.saveData(); alert(`更新:$${r.price}`); }catch(e){alert('失敗');}finally{this.isAnalyzing=false;} },
+        exportData(type) { if(type==='json'){ const a=document.createElement('a'); a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey})); a.download="backup.json"; document.body.appendChild(a);a.click();a.remove(); } else if(type==='csv'){ let csv="\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n"; this.inventory.forEach(i=>{ csv+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n"; }); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download="inventory.csv"; document.body.appendChild(a);a.click();a.remove(); } },
+        importData(e) { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(evt)=>{ const c=evt.target.result; if(f.name.endsWith('.json')){ try{ const p=JSON.parse(c); this.inventory=p.inventory||[]; this.expenses=p.expenses||[]; this.apiKey=p.apiKey||[]; this.saveData(); alert('還原成功'); }catch(err){alert('JSON錯誤');} return; } const l=c.trim().split(/\r?\n/); if(l.length<2)return alert('內容過短'); if(l[0].includes('類別')&&l[0].includes('金額')){ let cnt=0; for(let i=1;i<l.length;i++){ const cols=l[i].split(','); if(cols.length>=3){ this.expenses.push({ id:Date.now()+Math.random().toString(36), date:cols[0], category:cols[1], amount:parseFloat(cols[2]), refNumber:cols[3]||'', note:cols[4]||'CSV' }); cnt++; } } this.saveData(); alert(`匯入${cnt}筆支出`); } else { alert('庫存CSV...'); /* 簡化庫存匯入邏輯 */ } }; r.readAsText(f); }
     }
 }).mount('#app');
 </script>
