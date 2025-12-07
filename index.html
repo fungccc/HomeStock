@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v8.0</title>
+    <title>好男人智慧家居 v8.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -39,18 +39,22 @@
         .preview-card.warning { border-left-color: #ffc107; background-color: #fffbf0; }
         .preview-card.error { border-left-color: #dc3545; background-color: #fff5f5; }
         .ai-action-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .import-receiver { animation: highlight-pulse 2s infinite; background-color: #fffbf0; scroll-margin-top: 80px; }
-        @keyframes highlight-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); border: 2px solid #ffc107; } 70% { box-shadow: 0 0 0 15px rgba(255, 193, 7, 0); border: 2px solid #ffc107; } 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); border: 1px solid #dee2e6; } }
-        
-        /* v8.0 New: Map Button */
         .map-btn { color: #dc3545; text-decoration: none; margin-left: 5px; }
         .map-btn:hover { color: #bb2d3b; transform: scale(1.1); display: inline-block; }
+        
+        /* v8.1 修正：移除所有動畫，改用靜態樣式 */
+        .import-receiver { 
+            background-color: #fffdf0; 
+            border: 2px solid #ffc107; 
+            scroll-margin-top: 80px; 
+            /* No animation to prevent UI flicker */
+        }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v8.0</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v8.1</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
@@ -81,7 +85,6 @@
         </div>
 
         <div class="card p-0 overflow-hidden"><div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light"><tr><th class="ps-3">物品資訊</th><th class="text-center" style="min-width: 90px;">庫存</th><th class="text-center" style="width: 40px;">選</th></tr></thead><tbody><tr v-for="item in filteredInventory" :key="item.id" :class="{'table-active': isSelected(item)}"><td class="ps-3 py-3" @click="toggleSelection(item)"><div class="mb-1"><span class="category-tag">{{ getCategoryName(item.categoryId) }}</span><span v-if="item.brand" class="brand-tag">{{ item.brand }}</span></div><div class="item-name">{{ item.name }}</div><div class="mt-1"><span class="price-tag">{{ item.latestPrice ? '$'+item.latestPrice : '-' }} <span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span><a v-if="item.url" :href="item.url" target="_blank" class="link-icon" @click.stop><i class="bi bi-box-arrow-up-right"></i></a></span></div></td><td class="text-center align-middle"><div class="btn-group btn-group-sm"><button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-2">-</button><button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:30px">{{ item.stock }}</button><button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-2">+</button></div></td><td class="text-center align-middle" @click="toggleSelection(item)"><input type="checkbox" class="form-check-input" :checked="isSelected(item)"></td></tr></tbody></table></div></div>
-        
         <div v-if="selectedItems.length === 0" style="position: fixed; bottom: 25px; right: 25px; z-index: 999;"><button @click="openAddModal" class="btn btn-primary rounded-circle shadow p-0" style="width: 56px; height: 56px; font-size: 24px;"><i class="bi bi-plus-lg"></i></button></div>
         <div v-if="selectedItems.length > 0" class="floating-bar"><button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button><button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button><button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button><button @click="prepareExport('copy')" class="floating-btn"><i class="bi bi-clipboard"></i> 複製</button><button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button></div>
     </div>
@@ -89,11 +92,11 @@
     <div v-if="currentTab === 'expenses'">
         <div v-if="showAiReceiptPanel" class="card mb-3 import-receiver" ref="receiptPanel">
             <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-receipt"></i> 步驟 2: 貼上單據 JSON</span>
+                <span><i class="bi bi-receipt"></i> 步驟 2: 請貼上單據 JSON</span>
                 <button @click="showAiReceiptPanel = false" class="btn-close btn-sm"></button>
             </div>
             <div class="card-body">
-                <textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="點擊連結回來後，請直接貼上..."></textarea>
+                <textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="請長按此處貼上..."></textarea>
                 <div class="d-grid gap-2">
                     <button @click="processReceiptJson" class="btn btn-warning fw-bold">解析並填入表單</button>
                 </div>
@@ -123,14 +126,10 @@
                     </div>
                 </div>
 
-                <div class="col-12" v-if="selectedStore !== 'other' || customStoreInput">
+                <div class="col-12">
                     <div class="row g-2">
-                        <div class="col-8">
-                            <input v-model="newExpense.address" class="form-control form-control-sm text-muted" placeholder="📍 地址 (可留空)">
-                        </div>
-                        <div class="col-4">
-                            <input v-model="newExpense.mapUrl" class="form-control form-control-sm text-primary" placeholder="🗺️ Map URL">
-                        </div>
+                        <div class="col-8"><input v-model="newExpense.address" class="form-control form-control-sm text-muted" placeholder="📍 地址"></div>
+                        <div class="col-4"><input v-model="newExpense.mapUrl" class="form-control form-control-sm text-primary" placeholder="🗺️ Map URL"></div>
                     </div>
                 </div>
                 
@@ -150,28 +149,7 @@
             </div>
         </div>
         
-        <div class="card p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">紀錄列表</h5><button @click="showMonthlySummary" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-check"></i> 查看每月統計</button></div>
-            <div class="table-responsive">
-                <table class="table table-striped table-sm text-nowrap align-middle">
-                    <thead><tr><th>日期</th><th>類別/公司</th><th>金額</th><th>操作</th></tr></thead>
-                    <tbody>
-                        <tr v-for="(exp, index) in sortedExpenses" :key="index">
-                            <td><div>{{ exp.date }}</div></td>
-                            <td>
-                                <span class="badge bg-light text-dark border">{{ exp.category }}</span>
-                                <div class="fw-bold text-primary small mt-1">
-                                    {{ exp.note }}
-                                    <a v-if="exp.mapUrl" :href="exp.mapUrl" target="_blank" class="map-btn"><i class="bi bi-geo-alt-fill"></i></a>
-                                </div>
-                            </td>
-                            <td class="fw-bold">${{ exp.amount }}</td>
-                            <td><button v-if="exp.items && exp.items.length > 0" @click="viewOrderDetails(exp)" class="btn btn-xs btn-outline-info me-1"><i class="bi bi-file-text"></i></button><button @click="editExpenseDirectly(exp)" class="btn btn-xs btn-outline-secondary me-1"><i class="bi bi-pencil"></i></button><i @click="deleteExpense(index)" class="bi bi-x-circle text-danger" style="cursor:pointer"></i></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <div class="card p-3"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">紀錄列表</h5><button @click="showMonthlySummary" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-check"></i> 查看每月統計</button></div><div class="table-responsive"><table class="table table-striped table-sm text-nowrap align-middle"><thead><tr><th>日期</th><th>類別/公司</th><th>金額</th><th>操作</th></tr></thead><tbody><tr v-for="(exp, index) in sortedExpenses" :key="index"><td><div>{{ exp.date }}</div></td><td><span class="badge bg-light text-dark border">{{ exp.category }}</span><div class="fw-bold text-primary small mt-1">{{ exp.note }} <a v-if="exp.mapUrl" :href="exp.mapUrl" target="_blank" class="map-btn"><i class="bi bi-geo-alt-fill"></i></a></div></td><td class="fw-bold">${{ exp.amount }}</td><td><button v-if="exp.items && exp.items.length > 0" @click="viewOrderDetails(exp)" class="btn btn-xs btn-outline-info me-1"><i class="bi bi-file-text"></i></button><button @click="editExpenseDirectly(exp)" class="btn btn-xs btn-outline-secondary me-1"><i class="bi bi-pencil"></i></button><i @click="deleteExpense(index)" class="bi bi-x-circle text-danger" style="cursor:pointer"></i></td></tr></tbody></table></div></div>
     </div>
 
     <div v-if="currentTab === 'settings'">
@@ -242,7 +220,6 @@ createApp({
                 "水費": [], "電費": [], "煤氣/石油氣": [], "私家車入油": [], "寬頻": [], "電話費": [], "雲端及AI": [], "串流影片": [], "音樂串流": [], "健身會籍": [], "醫療保險": [], "按揭供款": [], "管理費": [], "超級市場": [], "飲食": [], "交通(八達通)": [], "車資": [], "網購": [] 
             },
             
-            // Default Initial Data (will be converted on load if string)
             defaultCompanies: {
                 "水費": ["水務署"], "電費": ["中電", "港燈"], "煤氣/石油氣": ["Towngas", "協和", "中石化", "標準", "美孚", "蜆殼", "新海", "半島", "加德士"], "私家車入油": ["Shell", "Esso", "加德士", "中石化", "中油", "ECO"], "寬頻": ["Netvigator", "HKBN", "HGC", "i-CABLE", "CMHK"], "電話費": ["csl", "1O1O", "SmarTone", "CMHK", "3HK", "HKT", "HKBN"], "雲端及AI": ["AWS", "Azure", "GCP", "阿里雲", "ChatGPT", "Gemini", "Grok", "Perplexity", "Copilot", "MJ"], "串流影片": ["Netflix", "Disney+", "Max", "AppleTV+", "Viu", "hmvod", "NowE"], "音樂串流": ["Spotify", "AppleMusic", "KKBOX"], "健身會籍": ["PURE", "Anytime", "24/7Fitness"], "醫療保險": ["AXA", "Bupa", "Bowtie", "BlueCross", "FWD", "Manulife", "Pru"], "按揭供款": ["HSBC", "恒生", "中銀", "渣打"], "管理費": ["屋苑管理處", "物管公司"], "超級市場": ["惠康", "百佳", "AEON", "MarketPlace", "FUSION", "TASTE", "city’super", "HKTVmall"], "飲食": ["麥當勞", "大家樂", "大快活", "翠華", "Starbucks", "PacificCoffee"], "交通(八達通)": ["八達通", "MTR", "KMB", "CTB", "LWB"], "車資": ["的士", "Uber"], "網購": ["HKTVmall", "Taobao", "Tmall", "JD", "Amazon"]
             },
@@ -261,12 +238,18 @@ createApp({
     mounted() { 
         this.loadData(); 
         
-        // Ensure default structure if empty
+        // Ensure default structure
         if (Object.keys(this.companyDB).length === 0 || this.companyDB["超級市場"].length === 0) {
-             // Init defaults
              for(let k in this.defaultCompanies) {
                  this.companyDB[k] = this.defaultCompanies[k].map(n => ({ name: n, address: '', mapUrl: '' }));
              }
+        }
+        
+        // Default selection init
+        if (this.currentCompanyOptions.length > 0) {
+            this.selectedStore = this.currentCompanyOptions[0].name;
+        } else {
+            this.selectedStore = 'other';
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -289,8 +272,6 @@ createApp({
                 this.inventory = p.inventory || []; 
                 this.expenses = p.expenses || []; 
                 this.apiKey = p.apiKey || ''; 
-                
-                // v8.0 Migration: Convert String[] to Object[]
                 if(p.companyDB) {
                     this.companyDB = p.companyDB;
                     for(let key in this.companyDB) {
@@ -345,12 +326,11 @@ createApp({
             this.stagedItems = []; this.importJsonText = ''; this.showAiImportPanel = false; this.showAiInventoryModal = false; this.saveData(); alert("更新成功！");
         },
 
-        // --- 2. Receipt AI (v8.0 Updated Prompt) ---
+        // --- Receipt AI (v8.1 Fixed Logic) ---
         openAiReceiptModal() { this.showAiReceiptModal = true; },
         copyReceiptPrompt() {
             const returnUrl = window.location.href.split('#')[0] + "#import_expenses";
             let extra = this.selectedAI === 'grok' ? `\n(⚠️ 注意：Grok App 請手動切換回瀏覽器)\n` : '';
-            // v8.0 Prompt: Ask for Address & Google Map Search Link
             const prompt = `你現在是我的「收據/發票分析員」。請分析我上傳的圖片。\n請提取以下資訊並嚴格輸出 JSON 格式：\n{\n "date": "YYYY-MM-DD",\n "store": "簡短店名(如 New Balance, 惠康)",\n "address": "請提取收據上的地址",\n "mapUrl": "請產生 Google Maps 搜尋連結：https://www.google.com/maps/search/?api=1&query={地址}",\n "total": 數字(最終實付金額),\n "category": "請推測類別(超級市場, 網購, 飲食, 衣物, 其他)",\n "items": [ { "name": "商品名", "price": 單價, "qty": 數量 } ]\n}\n注意："total" 必須是折扣後的最終付款金額。${extra}\n非常重要：請在 JSON 輸出結束後，新起一行，附上返回連結：\n[↩️ 點擊這裡返回系統匯入](${returnUrl})`;
             navigator.clipboard.writeText(prompt).then(() => { this.openTargetAI(this.getAiUrl()); });
         },
@@ -362,28 +342,28 @@ createApp({
                 if (firstBrace !== -1 && lastBrace !== -1) cleanText = cleanText.substring(firstBrace, lastBrace + 1);
                 const data = JSON.parse(cleanText);
                 
+                // 1. Fill basic data
                 this.newExpense.date = data.date || new Date().toISOString().split('T')[0];
                 this.newExpense.note = data.store || '';
                 this.newExpense.amount = data.total || 0;
                 this.newExpense.subtotal = data.total || 0;
                 this.newExpense.category = data.category || '其他';
-                // v8.0 New fields
-                this.newExpense.address = data.address || '';
-                this.newExpense.mapUrl = data.mapUrl || '';
+                // v8.1 Fix: Lock AI Address Data (Prevent overwrite by dropdown change)
+                const aiAddress = data.address || '';
+                const aiMapUrl = data.mapUrl || '';
+                this.newExpense.address = aiAddress;
+                this.newExpense.mapUrl = aiMapUrl;
                 
                 if (data.items && Array.isArray(data.items)) {
                     this.newExpense.items = data.items.map(i => ({ itemId: 'AI-' + Date.now() + Math.random(), name: i.name, brand: '', price: i.price || 0, qty: i.qty || 1 }));
                 }
                 
+                // 2. Match Category and Store
                 let matched = false;
-                // v8.0 Matching Logic: Check 'name' property of objects
                 if (this.companyDB[data.category]) {
-                     // Try precise match first
                      const found = this.companyDB[data.category].find(c => c.name === data.store);
-                     if(found) { 
-                         this.newExpense.category = data.category; matched = true; 
-                     } else {
-                         // Search in all categories
+                     if(found) { this.newExpense.category = data.category; matched = true; } 
+                     else {
                          for (const cat in this.companyDB) { 
                              const foundInCat = this.companyDB[cat].find(c => c.name === data.store);
                              if (foundInCat) { this.newExpense.category = cat; matched = true; break; } 
@@ -391,14 +371,18 @@ createApp({
                      }
                 }
 
-                this.onCategoryChange(); 
+                // 3. Update Dropdown logic without clearing address
+                // Refresh dropdown options based on category
+                // Manually set selectedStore
                 if (matched) { 
                     this.selectedStore = data.store; 
-                    // If AI found better address, maybe update? For now, we prefer AI's fresh data if user saves it.
                 } else { 
                     this.selectedStore = 'other'; 
                     this.customStoreInput = data.store; 
                 }
+                
+                // IMPORTANT: Do NOT call onStoreSelectChange() here because it loads DB address and overwrites AI address
+                // Just let the UI reflect the changes
 
                 this.showAiReceiptPanel = false;
                 this.receiptJsonText = '';
@@ -434,6 +418,8 @@ createApp({
                     this.newExpense.mapUrl = storeObj.mapUrl || '';
                 }
             } else {
+                // If switching to 'other' manually, clear address. 
+                // Note: AI process bypasses this to preserve AI data.
                 this.customStoreInput = '';
                 this.newExpense.address = '';
                 this.newExpense.mapUrl = '';
@@ -459,15 +445,12 @@ createApp({
                 const existingStoreIndex = this.companyDB[this.newExpense.category].findIndex(c => c.name === storeName);
                 
                 if (existingStoreIndex === -1) {
-                    // New store, add it
                     this.companyDB[this.newExpense.category].push({
                         name: storeName,
                         address: this.newExpense.address || '',
                         mapUrl: this.newExpense.mapUrl || ''
                     });
                 } else {
-                    // Existing store, update address if user provided a new one and the old one was empty
-                    // Or we can just update it always to keep it fresh
                     if (this.newExpense.address) {
                         this.companyDB[this.newExpense.category][existingStoreIndex].address = this.newExpense.address;
                         this.companyDB[this.newExpense.category][existingStoreIndex].mapUrl = this.newExpense.mapUrl;
@@ -482,13 +465,11 @@ createApp({
             this.newExpense=JSON.parse(JSON.stringify(exp));
             if(this.newExpense.subtotal === undefined) { this.newExpense.subtotal = this.newExpense.amount + (this.newExpense.discount || 0); }
             
-            // v8.0 Edit Logic: Find store object
             const currentOpts = this.companyDB[this.newExpense.category] || [];
             const storeObj = currentOpts.find(c => c.name === this.newExpense.note);
             
             if (storeObj) {
                 this.selectedStore = storeObj.name;
-                // If expense record has no address, try to load from DB
                 if(!this.newExpense.address) this.newExpense.address = storeObj.address;
                 if(!this.newExpense.mapUrl) this.newExpense.mapUrl = storeObj.mapUrl;
             } else {
@@ -501,7 +482,9 @@ createApp({
         cancelEditExpense(){this.resetExpenseForm();},
         resetExpenseForm(){
             this.newExpense={date:new Date().toISOString().split('T')[0],category:'超級市場',amount:0,subtotal:0,note:'',refNumber:'',items:[],discount:0, address:'', mapUrl:''};
-            this.selectedInventoryItem=null;this.tempQty=1;this.isEditingExpense=false;this.editingExpenseIndex=-1;this.onCategoryChange();
+            this.selectedInventoryItem=null;this.tempQty=1;this.isEditingExpense=false;this.editingExpenseIndex=-1;
+            // Reset to default selection logic
+            this.onCategoryChange();
         },
         exportExpenseCSV(){let csv="\uFEFF日期,類別,公司,金額,單號,地址\n";this.sortedExpenses.forEach(e=>csv+=`${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''}", "${e.address||''}"\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download="family_expenses.csv";document.body.appendChild(a);a.click();a.remove();},showMonthlySummary(){const stats={};this.expenses.forEach(e=>{const monthKey=e.date.substring(0,7);if(!stats[monthKey])stats[monthKey]=0;stats[monthKey]+=parseFloat(e.amount||0);});this.monthlyStats=Object.keys(stats).map(k=>({month:k,total:stats[k]})).sort((a,b)=>b.month.localeCompare(a.month));this.showMonthlyModal=true;},
         prepareFileExport(type){this.currentExportType=type;this.showFileExportModal=true;},executeExport(method){this.showFileExportModal=false;let content="",filename="",mimeType="text/plain";if(this.currentExportType==='json'){content=JSON.stringify({inventory:this.inventory,expenses:this.expenses,apiKey:this.apiKey,companyDB:this.companyDB});filename="good_husband_backup.json";mimeType="application/json";}else if(this.currentExportType==='inventory_csv'){content="\uFEFFid,分類,品牌,名稱,庫存,價格,單價,ISBN,網址\n";this.inventory.forEach(i=>{content+=[i.id,i.categoryId,i.brand,i.name,i.stock,i.latestPrice,i.unitPrice,i.isbn,i.url].map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')+"\n";});filename="inventory.csv";mimeType="text/csv";}else if(this.currentExportType==='expense_csv'){content="\uFEFF日期,類別,公司,金額,單號,地址\n";this.sortedExpenses.forEach(e=>content+=`${e.date},${e.category},"${e.note||''}",${e.amount},"${e.refNumber||''},"${e.address||''}"\n`);filename="expenses_list.csv";mimeType="text/csv";}if(method==='download'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mimeType}));a.download=filename;document.body.appendChild(a);a.click();a.remove();}else if(method==='share'){const file=new File([content],filename,{type:mimeType});if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:filename,text:'好男人智慧家居資料匯出'}).catch(err=>console.log('Share canceled',err));}else{alert("您的裝置不支援檔案分享，將改為直接下載。");const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mimeType}));a.download=filename;document.body.appendChild(a);a.click();a.remove();}}},triggerImport(type){this.currentImportType=type;this.$refs.fileInput.click();},handleFileImport(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(evt)=>{const c=evt.target.result;if(this.currentImportType==='json'){try{const p=JSON.parse(c);this.inventory=p.inventory||[];this.expenses=p.expenses||[];this.apiKey=p.apiKey||'';if(p.companyDB)this.companyDB=p.companyDB;this.saveData();alert('還原成功');}catch(err){alert('JSON 格式錯誤');}}else if(this.currentImportType==='inventory_csv'){const l=c.trim().split(/\r?\n/);let count=0;for(let i=1;i<l.length;i++){const cols=l[i].split(',').map(s=>s.replace(/^"|"$/g,''));if(cols.length>3){this.inventory.push({id:Date.now()+Math.random().toString(36),categoryId:cols[1],brand:cols[2],name:cols[3],stock:cols[4],latestPrice:cols[5]});count++;}}this.saveData();alert(`匯入 ${count} 筆庫存`);}else if(this.currentImportType==='expense_csv'){const l=c.trim().split(/\r?\n/);let count=0;for(let i=1;i<l.length;i++){const cols=l[i].split(',').map(s=>s.replace(/^"|"$/g,''));if(cols.length>=4){this.expenses.push({id:Date.now()+Math.random().toString(36),date:cols[0],category:cols[1],note:cols[2],amount:parseFloat(cols[3]),refNumber:cols[4]||''});count++;}}this.saveData();alert(`匯入 ${count} 筆支出`);}e.target.value='';};r.readAsText(f);}
