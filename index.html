@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v7.5</title>
+    <title>好男人智慧家居 v7.6</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -46,7 +46,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v7.5</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v7.6</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
@@ -204,46 +204,17 @@ createApp({
     watch: { 'newExpense.items': { handler() { this.updateCalculatedAmount(); }, deep: true }, 'newExpense.discount': function() { this.updateCalculatedAmount(); }, 'newExpense.subtotal': function() { this.updateCalculatedAmount(); } },
     mounted() { 
         this.loadData(); this.selectedStore = this.currentCompanyOptions[0] || 'other';
-        
-        // --- v7.4 強力偵測邏輯 ---
-        const urlStr = window.location.href;
-        
-        // 偵測關鍵字 (不論是 ? 或 # 之後)
-        const hasInventory = urlStr.includes('tab=inventory');
-        const hasExpenses = urlStr.includes('tab=expenses');
-        // 支援新版 openImport 與舊版 autoPaste
-        const hasImport = urlStr.includes('openImport=true') || urlStr.includes('autoPaste=true');
-
-        if (hasImport) {
-            // 使用 setTimeout 確保 DOM 渲染完畢
-            setTimeout(() => {
-                if (hasInventory) {
-                    this.currentTab = 'inventory';
-                    this.showAiImportPanel = true;
-                    this.$nextTick(() => { 
-                        if (this.$refs.inventoryPasteRef) { 
-                            this.$refs.inventoryPasteRef.focus(); 
-                            this.$refs.inventoryPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-                        } 
-                    });
-                } else if (hasExpenses) {
-                    this.currentTab = 'expenses';
-                    this.showAiReceiptPanel = true;
-                    this.$nextTick(() => { 
-                        if (this.$refs.receiptPasteRef) { 
-                            this.$refs.receiptPasteRef.focus(); 
-                            this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-                        } 
-                    });
-                }
-            }, 500); // 0.5秒延遲
-            
-            // 資料遺失警報
-            if (this.inventory.length === 0 && this.expenses.length === 0) { this.showLostDataWarning = true; }
-            
-            // 清理網址
-            window.history.replaceState({}, document.title, window.location.pathname);
+        const params = new URLSearchParams(window.location.search);
+        // v7.2 Logic
+        if (params.get('tab') === 'inventory' && params.get('openImport') === 'true') {
+            this.currentTab = 'inventory'; this.showAiImportPanel = true;
+            this.$nextTick(() => { if (this.$refs.inventoryPasteRef) { this.$refs.inventoryPasteRef.focus(); this.$refs.inventoryPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
+        } else if (params.get('tab') === 'expenses' && params.get('openImport') === 'true') {
+            this.currentTab = 'expenses'; this.showAiReceiptPanel = true;
+            this.$nextTick(() => { if (this.$refs.receiptPasteRef) { this.$refs.receiptPasteRef.focus(); this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
         }
+        if ((this.inventory.length === 0 && this.expenses.length === 0) && params.get('openImport') === 'true') { this.showLostDataWarning = true; }
+        if(params.get('openImport') === 'true') window.history.replaceState({}, document.title, window.location.pathname);
     },
     methods: {
         saveData() { localStorage.setItem('goodHusbandDB_v7', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB })); },
@@ -255,7 +226,7 @@ createApp({
         openTargetAI(url) { window.open(url, "_blank"); },
         getAiUrl() { if (this.selectedAI === 'grok') return 'https://x.com/i/grok'; if (this.selectedAI === 'chatgpt') return 'https://chatgpt.com/'; return 'https://gemini.google.com/app'; },
 
-        // --- 1. Inventory AI ---
+        // --- 1. Inventory AI (v7.6 Fix) ---
         openAiInventoryModal() { this.showAiInventoryModal = true; },
         copyAndOpenAI(mode) {
             const returnUrl = window.location.href.split('?')[0] + "?tab=inventory&openImport=true";
@@ -267,9 +238,20 @@ createApp({
         },
         processImportData() {
             try {
-                let cleanText = this.importJsonText.replace(/```json/g, '').replace(/```/g, '');
+                let cleanText = this.importJsonText;
+                // v7.6 Fix: Replace curved quotes
+                cleanText = cleanText.replace(/[\u201C\u201D]/g, '"');
+                cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '');
                 const linkIndex = cleanText.indexOf('[↩️'); if (linkIndex !== -1) cleanText = cleanText.substring(0, linkIndex);
-                const list = JSON.parse(cleanText.trim());
+                
+                // Extra Sanitization: Find first [ and last ]
+                const firstBracket = cleanText.indexOf('[');
+                const lastBracket = cleanText.lastIndexOf(']');
+                if (firstBracket !== -1 && lastBracket !== -1) {
+                    cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+                }
+
+                const list = JSON.parse(cleanText);
                 this.stagedItems = list.map(item => {
                     const existingItem = this.inventory.find(inv => inv.name === item.name);
                     return { ...item, id: existingItem ? existingItem.id : Date.now() + Math.random().toString(36).substr(2, 5), stock: existingItem ? existingItem.stock : 0 };
@@ -286,20 +268,31 @@ createApp({
             this.stagedItems = []; this.importJsonText = ''; this.showAiImportPanel = false; this.showAiInventoryModal = false; this.saveData(); alert("更新成功！");
         },
 
-        // --- 2. Receipt AI (New v7.5) ---
+        // --- 2. Receipt AI (v7.6 Fix) ---
         openAiReceiptModal() { this.showAiReceiptModal = true; },
         copyReceiptPrompt() {
             const returnUrl = window.location.href.split('?')[0] + "?tab=expenses&openImport=true";
             let extra = this.selectedAI === 'grok' ? `\n(⚠️ 注意：Grok App 請手動切換回瀏覽器)\n` : '';
-            // v7.5 Updated Prompt for Short Names
-            const prompt = `你現在是我的「收據/發票分析員」。請分析我上傳的圖片。\n請提取以下資訊並嚴格輸出 JSON 格式：\n{\n "date": "YYYY-MM-DD",\n "store": "簡短店名(如 New Balance, 惠康，去除分店名/地址/有限公司字眼)",\n "total": 數字(最終實付金額),\n "category": "請推測類別(超級市場, 網購, 飲食, 衣物, 其他)",\n "items": [ { "name": "商品名", "price": 單價, "qty": 數量 } ]\n}\n注意："total" 必須是折扣後的最終付款金額。${extra}\n非常重要：請在 JSON 輸出結束後，新起一行，附上返回連結：\n[↩️ 點擊這裡返回系統匯入](${returnUrl})`;
+            const prompt = `你現在是我的「收據/發票分析員」。請分析我上傳的圖片。\n請提取以下資訊並嚴格輸出 JSON 格式：\n{\n "date": "YYYY-MM-DD",\n "store": "店鋪名稱(如 New Balance, 惠康)",\n "total": 數字(最終實付金額),\n "category": "請推測類別(超級市場, 網購, 飲食, 衣物, 其他)",\n "items": [ { "name": "商品名", "price": 單價, "qty": 數量 } ]\n}\n注意："total" 必須是折扣後的最終付款金額。${extra}\n非常重要：請在 JSON 輸出結束後，新起一行，附上返回連結：\n[↩️ 點擊這裡返回系統匯入](${returnUrl})`;
             navigator.clipboard.writeText(prompt).then(() => { this.openTargetAI(this.getAiUrl()); });
         },
         processReceiptJson() {
             try {
-                let cleanText = this.receiptJsonText.replace(/```json/g, '').replace(/```/g, '');
+                let cleanText = this.receiptJsonText;
+                // v7.6 Fix: Replace curved quotes
+                cleanText = cleanText.replace(/[\u201C\u201D]/g, '"');
+                cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '');
+                
                 const linkIndex = cleanText.indexOf('[↩️'); if (linkIndex !== -1) cleanText = cleanText.substring(0, linkIndex);
-                const data = JSON.parse(cleanText.trim());
+                
+                // Extra Sanitization: Find first { and last }
+                const firstBrace = cleanText.indexOf('{');
+                const lastBrace = cleanText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+                }
+
+                const data = JSON.parse(cleanText);
                 
                 this.newExpense.date = data.date || new Date().toISOString().split('T')[0];
                 this.newExpense.note = data.store || '';
@@ -330,7 +323,7 @@ createApp({
                     }
                 });
                 
-            } catch (e) { alert('單據 JSON 解析失敗'); console.error(e); }
+            } catch (e) { alert('單據 JSON 解析失敗: ' + e.message); console.error(e); }
         },
 
         updateCalculatedAmount() {
@@ -342,21 +335,12 @@ createApp({
         
         addCartItemManual(){ this.newExpense.items.push({itemId:'MANUAL', name:'新項目', brand:'', price:0, qty:1}); },
         openAddModal(){this.editingForm={categoryId:'99',stock:1,brand:''};this.showAddModal=true;},closeModal(){this.showAddModal=false;this.showEditModal=false;this.editingForm={};},saveItem(){if(!this.editingForm.name)return alert('名稱必填');if(this.showEditModal){const idx=this.inventory.findIndex(i=>i.id===this.editingForm.id);if(idx!==-1)this.inventory[idx]={...this.editingForm};}else{this.editingForm.id=Date.now().toString();this.inventory.push(this.editingForm);}this.saveData();this.closeModal();this.selectedIds=[];},actionDelete(){if(!confirm('刪除？'))return;this.inventory=this.inventory.filter(i=>!this.selectedIds.includes(i.id));this.selectedIds=[];this.saveData();},actionEdit(){if(this.selectedItems.length!==1)return;this.editingForm=JSON.parse(JSON.stringify(this.selectedItems[0]));this.showEditModal=true;},updateStock(item,change){item.stock=Math.max(0,(item.stock||0)+change);this.saveData();},onCategoryChange(){this.selectedStore=this.currentCompanyOptions[0]||'other';this.customStoreInput='';},addCartItem(){if(!this.selectedInventoryItem)return;if(this.tempQty<1)return alert('數量至少為 1');if(!this.newExpense.items)this.newExpense.items=[];this.newExpense.items.push({itemId:this.selectedInventoryItem.id,name:this.selectedInventoryItem.name,brand:this.selectedInventoryItem.brand||'',price:this.selectedInventoryItem.latestPrice||0,qty:this.tempQty});this.tempQty=1;this.selectedInventoryItem=null;},removeCartItem(idx){this.newExpense.items.splice(idx,1);},
-        
-        // --- v7.5 Save Expense (Auto-Learn Company) ---
         saveExpense(){
             let storeName=this.selectedStore;if(storeName==='other')storeName=this.customStoreInput||'其他';this.newExpense.note=storeName;
             this.updateCalculatedAmount();
             if(!this.newExpense.amount&&this.newExpense.amount!==0)return alert('金額必填');
-            
-            // v7.5 Auto-Learn Logic
-            if (this.newExpense.category && this.companyDB[this.newExpense.category] && !this.companyDB[this.newExpense.category].includes(storeName)) {
-                this.companyDB[this.newExpense.category].push(storeName);
-            }
-
             if(this.isEditingExpense){this.expenses[this.editingExpenseIndex]={...this.newExpense};alert('紀錄已更新');}else{this.newExpense.id=Date.now().toString()+Math.random().toString(36).substr(2,5);this.expenses.push({...this.newExpense});if(this.isShoppingCategory&&this.newExpense.items&&this.newExpense.items.length>0){if(confirm(`儲存成功！\n是否要將這 ${this.newExpense.items.length} 項商品的數量加入庫存？`)){this.updateInventoryFromOrder(this.newExpense.items);}}}this.resetExpenseForm();this.saveData();
         },
-        
         updateInventoryFromOrder(items){let count=0;items.forEach(orderItem=>{const invItem=this.inventory.find(i=>i.id===orderItem.itemId);if(invItem){invItem.stock=(invItem.stock||0)+orderItem.qty;count++;}});alert(`已更新 ${count} 個庫存項目。`);},deleteExpense(idx){if(confirm('刪除紀錄？')){this.expenses.splice(idx,1);this.saveData();}},viewOrderDetails(exp){this.viewingOrder=exp;this.showOrderDetailModal=true;},editOrderFromModal(){this.showOrderDetailModal=false;this.editExpenseDirectly(this.viewingOrder);},
         editExpenseDirectly(exp){
             this.newExpense=JSON.parse(JSON.stringify(exp));
