@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v8.3</title>
+    <title>好男人智慧家居 v8.4</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -52,7 +52,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v8.3</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v8.4</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
@@ -130,7 +130,7 @@
                             <input v-model="newExpense.address" class="form-control form-control-sm text-muted" placeholder="📍 地址 (AI自動填寫)" @input="autoGenerateMapUrl">
                         </div>
                         <div class="col-4">
-                            <input v-model="newExpense.mapUrl" class="form-control form-control-sm text-primary" placeholder="🗺️ Link (自動生成)">
+                            <input v-model="newExpense.mapUrl" class="form-control form-control-sm text-primary" placeholder="🗺️ Link (自動)">
                         </div>
                     </div>
                 </div>
@@ -325,12 +325,12 @@ createApp({
             this.stagedItems = []; this.importJsonText = ''; this.showAiImportPanel = false; this.showAiInventoryModal = false; this.saveData(); alert("更新成功！");
         },
 
-        // --- 2. Receipt AI (v8.3 Updated: Hybrid Search Map URL) ---
+        // --- 2. Receipt AI (v8.4 Updated: Generate standard Google Map URL) ---
         openAiReceiptModal() { this.showAiReceiptModal = true; },
         copyReceiptPrompt() {
             const returnUrl = window.location.href.split('#')[0] + "#import_expenses";
             let extra = this.selectedAI === 'grok' ? `\n(⚠️ 注意：Grok App 請手動切換回瀏覽器)\n` : '';
-            // v8.3: Updated Prompt, remove explicit mapUrl generation request to AI
+            // v8.4: Ask AI for address, then use system to generate standard URL
             const prompt = `你現在是我的「收據/發票分析員」。請分析我上傳的圖片。\n請提取以下資訊並嚴格輸出 JSON 格式：\n{\n "date": "YYYY-MM-DD",\n "store": "簡短店名(如 New Balance, 惠康)",\n "address": "請提取收據上的地址，若無詳細地址請提供地區(如 旺角)",\n "total": 數字(最終實付金額),\n "category": "請推測類別(超級市場, 網購, 飲食, 衣物, 其他)",\n "items": [ { "name": "商品名", "price": 單價, "qty": 數量 } ]\n}\n注意："total" 必須是折扣後的最終付款金額。${extra}\n非常重要：請在 JSON 輸出結束後，新起一行，附上返回連結：\n[↩️ 點擊這裡返回系統匯入](${returnUrl})`;
             navigator.clipboard.writeText(prompt).then(() => { this.openTargetAI(this.getAiUrl()); });
         },
@@ -347,12 +347,10 @@ createApp({
                 this.newExpense.amount = data.total || 0;
                 this.newExpense.subtotal = data.total || 0;
                 this.newExpense.category = data.category || '其他';
-                // v8.3: Force Address from AI
                 this.newExpense.address = data.address || '';
                 
-                // v8.3: Hybrid Search URL Generation
-                const searchQuery = data.store + (data.address ? " " + data.address : "");
-                this.newExpense.mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+                // v8.4: Generate Standard Google Maps Search URL
+                this.autoGenerateMapUrl();
                 
                 if (data.items && Array.isArray(data.items)) {
                     this.newExpense.items = data.items.map(i => ({ itemId: 'AI-' + Date.now() + Math.random(), name: i.name, brand: '', price: i.price || 0, qty: i.qty || 1 }));
@@ -393,11 +391,13 @@ createApp({
             } catch (e) { alert('單據 JSON 解析失敗: ' + e.message); console.error(e); }
         },
         
-        // v8.3 Manual Map URL Generation trigger
+        // v8.4 Updated Map URL Generator (Standard Search Link)
         autoGenerateMapUrl() {
-            const store = this.selectedStore === 'other' ? this.customStoreInput : this.selectedStore;
+            const store = (this.selectedStore === 'other' ? this.customStoreInput : this.selectedStore) || this.newExpense.note;
+            const address = this.newExpense.address || "";
+            
             if (store) {
-                 const searchQuery = store + (this.newExpense.address ? " " + this.newExpense.address : "");
+                 const searchQuery = store + (address ? " " + address : "");
                  this.newExpense.mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
             }
         },
@@ -450,7 +450,6 @@ createApp({
                         mapUrl: this.newExpense.mapUrl || ''
                     });
                 } else {
-                    // Update address if current one is not empty
                     if (this.newExpense.address) {
                         this.companyDB[this.newExpense.category][existingStoreIndex].address = this.newExpense.address;
                         this.companyDB[this.newExpense.category][existingStoreIndex].mapUrl = this.newExpense.mapUrl;
@@ -464,20 +463,7 @@ createApp({
         editExpenseDirectly(exp){
             this.newExpense=JSON.parse(JSON.stringify(exp));
             if(this.newExpense.subtotal === undefined) { this.newExpense.subtotal = this.newExpense.amount + (this.newExpense.discount || 0); }
-            
-            const currentOpts = this.companyDB[this.newExpense.category] || [];
-            const storeObj = currentOpts.find(c => c.name === this.newExpense.note);
-            
-            if (storeObj) {
-                this.selectedStore = storeObj.name;
-                if(!this.newExpense.address) this.newExpense.address = storeObj.address;
-                if(!this.newExpense.mapUrl) this.newExpense.mapUrl = storeObj.mapUrl;
-            } else {
-                this.selectedStore = 'other';
-                this.customStoreInput = this.newExpense.note;
-            }
-            
-            this.isEditingExpense=true;this.editingExpenseIndex=this.expenses.findIndex(e=>e.id===exp.id);window.scrollTo({top:0,behavior:'smooth'});
+            const currentOpts=this.companyDB[this.newExpense.category]||[];if(currentOpts.includes(this.newExpense.note)){this.selectedStore=this.newExpense.note;}else{this.selectedStore='other';this.customStoreInput=this.newExpense.note;}this.isEditingExpense=true;this.editingExpenseIndex=this.expenses.findIndex(e=>e.id===exp.id);window.scrollTo({top:0,behavior:'smooth'});
         },
         cancelEditExpense(){this.resetExpenseForm();},
         resetExpenseForm(){
