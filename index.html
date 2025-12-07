@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v7.1</title>
+    <title>好男人智慧家居 v7.2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -42,17 +42,17 @@
         
         /* 接收區高亮動畫 */
         @keyframes highlight-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); border: 2px solid #ffc107; }
-            70% { box-shadow: 0 0 0 15px rgba(255, 193, 7, 0); border: 2px solid #ffc107; }
-            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); border: 1px solid #dee2e6; }
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); border: 2px solid #ffc107; transform: scale(1); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); border: 2px solid #ffc107; transform: scale(1.01); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); border: 1px solid #dee2e6; transform: scale(1); }
         }
-        .import-receiver { animation: highlight-pulse 2s infinite; background-color: #fffbf0; }
+        .import-receiver { animation: highlight-pulse 1.5s ease-out 3; background-color: #fffdf5; scroll-margin-top: 80px; }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v7.1</h4>
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v7.2</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
@@ -61,15 +61,15 @@
     </ul>
 
     <div v-if="currentTab === 'inventory'">
-        <div v-if="showAiImportPanel" class="card mb-3 import-receiver">
+        <div v-if="showAiImportPanel" class="card mb-3 import-receiver" ref="inventoryPanel">
             <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-box-arrow-in-down"></i> 步驟 2: 請在此貼上 AI JSON</span>
+                <span><i class="bi bi-box-arrow-in-down"></i> 步驟 2: 請在此貼上 JSON</span>
                 <button @click="showAiImportPanel = false" class="btn-close btn-sm"></button>
             </div>
             <div class="card-body">
-                <textarea ref="inventoryPasteRef" v-model="importJsonText" class="form-control mb-2" rows="4" placeholder="點擊連結回來後，請直接貼上..."></textarea>
+                <textarea ref="inventoryPasteRef" v-model="importJsonText" class="form-control mb-2" rows="4" placeholder="點擊連結回來後，請直接貼上 AI 給的內容..."></textarea>
                 <div class="d-grid gap-2">
-                    <button @click="processImportData" class="btn btn-warning fw-bold">匯入資料庫</button>
+                    <button @click="processImportData" class="btn btn-warning fw-bold">分析並匯入資料庫</button>
                 </div>
             </div>
         </div>
@@ -88,15 +88,15 @@
     </div>
 
     <div v-if="currentTab === 'expenses'">
-        <div v-if="showAiReceiptPanel" class="card mb-3 import-receiver">
+        <div v-if="showAiReceiptPanel" class="card mb-3 import-receiver" ref="receiptPanel">
             <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-receipt"></i> 步驟 2: 貼上單據 JSON</span>
+                <span><i class="bi bi-receipt"></i> 步驟 2: 請貼上單據 JSON</span>
                 <button @click="showAiReceiptPanel = false" class="btn-close btn-sm"></button>
             </div>
             <div class="card-body">
                 <textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="點擊連結回來後，請直接貼上..."></textarea>
                 <div class="d-grid gap-2">
-                    <button @click="processReceiptJson" class="btn btn-warning fw-bold">解析並填入</button>
+                    <button @click="processReceiptJson" class="btn btn-warning fw-bold">解析並填入表單</button>
                 </div>
             </div>
         </div>
@@ -104,29 +104,21 @@
         <div class="card p-3 mb-3 border-primary">
             <h5 class="text-primary fw-bold d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-cart-plus"></i> {{ isEditingExpense ? '編輯紀錄' : '新增支出' }}</span>
-                <div>
-                    <button v-if="!isEditingExpense" @click="openAiReceiptModal" class="btn btn-sm ai-action-btn rounded-pill px-3 me-1"><i class="bi bi-camera"></i> AI 掃單</button>
-                    <button v-if="isEditingExpense" @click="cancelEditExpense" class="btn btn-sm btn-outline-secondary">取消</button>
-                </div>
+                <div><button v-if="!isEditingExpense" @click="openAiReceiptModal" class="btn btn-sm ai-action-btn rounded-pill px-3 me-1"><i class="bi bi-camera"></i> AI 掃單</button><button v-if="isEditingExpense" @click="cancelEditExpense" class="btn btn-sm btn-outline-secondary">取消</button></div>
             </h5>
             <div class="row g-2">
                 <div class="col-6"><label class="small text-muted">日期</label><input v-model="newExpense.date" type="date" class="form-control"></div>
                 <div class="col-6"><label class="small text-muted">類別</label><select v-model="newExpense.category" class="form-select" @change="onCategoryChange"><option v-for="(brands, cat) in companyDB" :value="cat">{{ cat }}</option><option value="其他">其他</option></select></div>
                 <div class="col-12"><label class="small text-muted">店鋪 / 公司</label><div class="input-group"><select v-model="selectedStore" class="form-select"><option v-for="store in currentCompanyOptions" :value="store">{{ store }}</option><option value="other">＋ 新增...</option></select><input v-if="selectedStore === 'other'" v-model="customStoreInput" type="text" class="form-control" placeholder="輸入名稱"></div></div>
-                
                 <div class="col-12 mt-2">
                     <div class="bg-light p-2 rounded border">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="small fw-bold mb-0"><i class="bi bi-bag"></i> 明細</label>
-                            <button v-if="isShoppingCategory" @click="addCartItemManual" class="btn btn-xs btn-outline-secondary">+ 手動加入</button>
-                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2"><label class="small fw-bold mb-0"><i class="bi bi-bag"></i> 明細</label><button v-if="isShoppingCategory" @click="addCartItemManual" class="btn btn-xs btn-outline-secondary">+ 手動加入</button></div>
                         <div v-if="isShoppingCategory" class="input-group mb-2"><select v-model="selectedInventoryItem" class="form-select form-select-sm"><option :value="null">-- 從庫存選擇 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select><input v-model.number="tempQty" type="number" class="form-control form-select-sm" placeholder="量" style="max-width: 60px;" min="1"><button @click="addCartItem" class="btn btn-sm btn-primary" :disabled="!selectedInventoryItem">加入</button></div>
                         <div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 60px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div></div></div>
                     </div>
                 </div>
                 <div v-if="!isShoppingCategory" class="col-12 mt-2"><label class="small text-muted fw-bold">帳單原額</label><input v-model.number="newExpense.subtotal" type="number" class="form-control" placeholder="輸入金額"></div>
-
-                <div class="col-12 mt-2"><div class="cart-summary border p-2 rounded bg-white"><div class="row g-2 align-items-center"><div class="col-5"><label class="small text-muted">折扣優惠</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div><div class="col-7 text-end"><label class="small text-muted d-block">實付金額</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-5" readonly></div></div></div></div>
+                <div class="col-12 mt-2"><div class="cart-summary border p-2 rounded bg-white"><div class="row g-2 align-items-center"><div class="col-5"><label class="small text-muted">折扣優惠</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div><div class="col-7 text-end"><label class="small text-muted d-block">實付金額 (Final)</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-5" readonly></div></div></div></div>
                 <div class="col-12"><label class="small text-muted">備註/單號</label><input v-model="newExpense.refNumber" class="form-control" placeholder="選填"></div>
                 <div class="col-12 mt-3"><button @click="saveExpense" class="btn w-100" :class="isEditingExpense ? 'btn-warning' : 'btn-primary'">{{ isEditingExpense ? '更新紀錄' : '儲存紀錄' }}</button></div>
             </div>
@@ -140,31 +132,11 @@
     </div>
 
     <div v-if="showAiInventoryModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div>
-                <div class="modal-body">
-                    <div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI = 'gemini'" type="button" class="btn btn-sm" :class="selectedAI === 'gemini' ? 'btn-primary' : 'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" type="button" class="btn btn-sm" :class="selectedAI === 'grok' ? 'btn-dark' : 'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" type="button" class="btn btn-sm" :class="selectedAI === 'chatgpt' ? 'btn-success' : 'btn-outline-success'">ChatGPT</button></div>
-                    <p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p>
-                    <textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea>
-                    <div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div>
-                    <div v-if="stagedItems.length > 0" class="mt-3 border-top pt-3"><h6 class="fw-bold">預覽結果 ({{ stagedItems.length }})</h6><div v-for="(item, idx) in stagedItems" :key="idx" class="card mb-2 preview-card bg-light"><div class="card-body p-2"><input v-model="item.name" class="form-control form-control-sm mb-1 fw-bold"><div class="row g-1"><div class="col-4"><input v-model.number="item.latestPrice" type="number" class="form-control form-control-sm"></div><div class="col-4"><input v-model="item.brand" class="form-control form-control-sm" placeholder="品牌"></div><div class="col-4"><input v-model="item.unitPrice" class="form-control form-control-sm" placeholder="單位"></div></div></div></div><button @click="confirmStagedImport" class="btn btn-success w-100">確認入庫</button></div>
-                </div>
-            </div>
-        </div>
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI = 'gemini'" type="button" class="btn btn-sm" :class="selectedAI === 'gemini' ? 'btn-primary' : 'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" type="button" class="btn btn-sm" :class="selectedAI === 'grok' ? 'btn-dark' : 'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" type="button" class="btn btn-sm" :class="selectedAI === 'chatgpt' ? 'btn-success' : 'btn-outline-success'">ChatGPT</button></div><p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p><textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea><div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div><div v-if="stagedItems.length > 0" class="mt-3 border-top pt-3"><h6 class="fw-bold">預覽結果 ({{ stagedItems.length }})</h6><div v-for="(item, idx) in stagedItems" :key="idx" class="card mb-2 preview-card bg-light"><div class="card-body p-2"><input v-model="item.name" class="form-control form-control-sm mb-1 fw-bold"><div class="row g-1"><div class="col-4"><input v-model.number="item.latestPrice" type="number" class="form-control form-control-sm"></div><div class="col-4"><input v-model="item.brand" class="form-control form-control-sm" placeholder="品牌"></div><div class="col-4"><input v-model="item.unitPrice" class="form-control form-control-sm" placeholder="單位"></div></div></div></div><button @click="confirmStagedImport" class="btn btn-success w-100">確認入庫</button></div></div></div></div>
     </div>
-
+    
     <div v-if="showAiReceiptModal" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div>
-                <div class="modal-body">
-                    <div class="btn-group w-100 mb-3"><button @click="selectedAI = 'gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div>
-                    <button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button>
-                    <div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div>
-                </div>
-            </div>
-        </div>
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3"><button @click="selectedAI = 'gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button><div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div></div></div></div>
     </div>
 
     <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length === 0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
@@ -182,22 +154,23 @@ createApp({
     data() {
         return {
             currentTab: 'inventory', geminiMode: 'app', apiKey: '', searchQuery: '',
-            selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [],
+            selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [], inputMode: 'text',
             
             showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false, showFileExportModal: false, showAiInventoryModal: false, showAiReceiptModal: false,
-            // v7.1 New State: Show specific Import Panels on main tabs
+            // v7.1/v7.2 Landing Zones
             showAiImportPanel: false, showAiReceiptPanel: false,
             
             exportActionType: '', editingForm: {}, viewingOrder: {}, monthlyStats: [],
-            importJsonText: '', receiptJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null,
+            importJsonText: '', receiptJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null, 
+            isWaitingForPaste: false, isWaitingForReceiptPaste: false, 
             currentImportType: '', currentExportType: '', stagedItems: [],
 
             newExpense: { date: new Date().toISOString().split('T')[0], category: '超級市場', amount: 0, subtotal: 0, note: '', refNumber: '', items: [], discount: 0 },
             selectedInventoryItem: null, tempQty: 1, selectedStore: '', customStoreInput: '',
             isEditingExpense: false, editingExpenseIndex: -1,
 
-            companyDB: { "水費": ["水務署"], "電費": ["中電", "港燈"], "煤氣/石油氣": ["Towngas", "協和", "中石化"], "超級市場": ["惠康", "百佳", "AEON", "HKTVmall"], "飲食": ["麥當勞", "大家樂"], "交通": ["八達通", "MTR"], "網購": ["Taobao", "Amazon"], "其他": [] }, // Simplified for brevity
-            categories: [ { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '99', name: '其他' } ]
+            companyDB: { "水費": ["水務署"], "電費": ["中電", "港燈"], "煤氣/石油氣": ["Towngas", "協和", "中石化", "標準", "美孚", "蜆殼", "新海", "半島", "加德士"], "私家車入油": ["Shell", "Esso", "加德士", "中石化", "中油", "ECO"], "寬頻": ["Netvigator", "HKBN", "HGC", "i-CABLE", "CMHK"], "電話費": ["csl", "1O1O", "SmarTone", "CMHK", "3HK", "HKT", "HKBN"], "雲端及AI": ["AWS", "Azure", "GCP", "阿里雲", "ChatGPT", "Gemini", "Grok", "Perplexity", "Copilot", "MJ"], "串流影片": ["Netflix", "Disney+", "Max", "AppleTV+", "Viu", "hmvod", "NowE"], "音樂串流": ["Spotify", "AppleMusic", "KKBOX"], "健身會籍": ["PURE", "Anytime", "24/7Fitness"], "醫療保險": ["AXA", "Bupa", "Bowtie", "BlueCross", "FWD", "Manulife", "Pru"], "按揭供款": ["HSBC", "恒生", "中銀", "渣打"], "管理費": ["屋苑管理處", "物管公司"], "超級市場": ["惠康", "百佳", "AEON", "MarketPlace", "FUSION", "TASTE", "city’super", "HKTVmall"], "飲食": ["麥當勞", "大家樂", "大快活", "翠華", "Starbucks", "PacificCoffee"], "交通(八達通)": ["八達通", "MTR", "KMB", "CTB", "LWB"], "車資": ["的士", "Uber"], "網購": ["HKTVmall", "Taobao", "Tmall", "JD", "Amazon"] },
+            categories: [ { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' }, { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' } ]
         };
     },
     computed: {
@@ -210,40 +183,50 @@ createApp({
     watch: { 'newExpense.items': { handler() { this.updateCalculatedAmount(); }, deep: true }, 'newExpense.discount': function() { this.updateCalculatedAmount(); }, 'newExpense.subtotal': function() { this.updateCalculatedAmount(); } },
     mounted() { 
         this.loadData(); this.selectedStore = this.currentCompanyOptions[0] || 'other';
-        const params = new URLSearchParams(window.location.search);
         
-        // --- v7.1 Enhanced Navigation & Landing Zone ---
-        if (params.get('tab') === 'inventory' && params.get('openImport') === 'true') {
-            this.currentTab = 'inventory';
-            this.showAiImportPanel = true; // Show top panel
-            this.$nextTick(() => { if (this.$refs.inventoryPasteRef) this.$refs.inventoryPasteRef.focus(); });
-        } else if (params.get('tab') === 'expenses' && params.get('openImport') === 'true') {
-            this.currentTab = 'expenses';
-            this.showAiReceiptPanel = true; // Show top panel
-            this.$nextTick(() => { if (this.$refs.receiptPasteRef) this.$refs.receiptPasteRef.focus(); });
+        // --- v7.2 強力偵測邏輯 ---
+        const urlStr = window.location.href;
+        
+        // 偵測關鍵字 (不論是 ? 或 # 之後)
+        const hasInventory = urlStr.includes('tab=inventory');
+        const hasExpenses = urlStr.includes('tab=expenses');
+        // 支援新版 openImport 與舊版 autoPaste
+        const hasImport = urlStr.includes('openImport=true') || urlStr.includes('autoPaste=true');
+
+        if (hasImport) {
+            if (hasInventory) {
+                this.currentTab = 'inventory';
+                this.showAiImportPanel = true;
+                setTimeout(() => { if (this.$refs.inventoryPasteRef) { this.$refs.inventoryPasteRef.focus(); this.$refs.inventoryPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500);
+            } else if (hasExpenses) {
+                this.currentTab = 'expenses';
+                this.showAiReceiptPanel = true;
+                setTimeout(() => { if (this.$refs.receiptPasteRef) { this.$refs.receiptPasteRef.focus(); this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500);
+            }
+            
+            // 資料遺失警報
+            if (this.inventory.length === 0 && this.expenses.length === 0) { this.showLostDataWarning = true; }
+            
+            // 清理網址
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
-        
-        // WebView check
-        if ((this.inventory.length === 0 && this.expenses.length === 0) && params.get('openImport') === 'true') { this.showLostDataWarning = true; }
-        
-        // Clean URL
-        if(params.get('openImport') === 'true') window.history.replaceState({}, document.title, window.location.pathname);
     },
     methods: {
         saveData() { localStorage.setItem('goodHusbandDB_v7', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB })); },
-        loadData() { let data = localStorage.getItem('goodHusbandDB_v7') || localStorage.getItem('goodHusbandDB_v5_3'); if (data) { let p = JSON.parse(data); this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || ''; if(p.companyDB) this.companyDB = p.companyDB; } },
+        loadData() { 
+            let data = localStorage.getItem('goodHusbandDB_v7') || localStorage.getItem('goodHusbandDB_v5_3'); 
+            if (data) { let p = JSON.parse(data); this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || ''; if(p.companyDB) this.companyDB = p.companyDB; } 
+        },
         saveSettings() { this.saveData(); alert('設定已儲存！'); }, getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
         isSelected(item) { return this.selectedIds.includes(item.id); }, toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); }, selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
         prepareExport(type) { this.exportActionType = type; this.showExportModal = true; }, confirmExport(format) { this.showExportModal = false; let text = ""; if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n'); else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name} [${i.brand||''}] | $${i.latestPrice||'-'}`).join('\n'); else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n'); if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`; else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); } else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製')); },
         
-        // --- AI Helper Functions ---
         openTargetAI(url) { window.open(url, "_blank"); },
         getAiUrl() { if (this.selectedAI === 'grok') return 'https://x.com/i/grok'; if (this.selectedAI === 'chatgpt') return 'https://chatgpt.com/'; return 'https://gemini.google.com/app'; },
 
         // --- 1. Inventory AI ---
         openAiInventoryModal() { this.showAiInventoryModal = true; },
         copyAndOpenAI(mode) {
-            // Updated Return URL for v7.1
             const returnUrl = window.location.href.split('?')[0] + "?tab=inventory&openImport=true";
             let contentText = mode === 'image' ? "(請等待我上傳圖片)" : (this.pastedText || "（無內容）");
             let actionInstruction = mode === 'image' ? "請分析我上傳的圖片。" : "請將我提供的商品內容轉換為 JSON 格式。";
@@ -260,7 +243,6 @@ createApp({
                     const existingItem = this.inventory.find(inv => inv.name === item.name);
                     return { ...item, id: existingItem ? existingItem.id : Date.now() + Math.random().toString(36).substr(2, 5), stock: existingItem ? existingItem.stock : 0 };
                 });
-                // In v7.1, we process immediately for simplicity in the landing zone
                 this.confirmStagedImport();
             } catch (e) { alert('JSON 錯誤'); }
         },
@@ -276,7 +258,6 @@ createApp({
         // --- 2. Receipt AI ---
         openAiReceiptModal() { this.showAiReceiptModal = true; },
         copyReceiptPrompt() {
-            // Updated Return URL for v7.1
             const returnUrl = window.location.href.split('?')[0] + "?tab=expenses&openImport=true";
             let extra = this.selectedAI === 'grok' ? `\n(⚠️ 注意：Grok App 請手動切換回瀏覽器)\n` : '';
             const prompt = `你現在是我的「收據/發票分析員」。請分析我上傳的圖片。\n請提取以下資訊並嚴格輸出 JSON 格式：\n{\n "date": "YYYY-MM-DD",\n "store": "店鋪名稱(如 New Balance, 惠康)",\n "total": 數字(最終實付金額),\n "category": "請推測類別(超級市場, 網購, 飲食, 衣物, 其他)",\n "items": [ { "name": "商品名", "price": 單價, "qty": 數量 } ]\n}\n注意："total" 必須是折扣後的最終付款金額。${extra}\n非常重要：請在 JSON 輸出結束後，新起一行，附上返回連結：\n[↩️ 點擊這裡返回系統匯入](${returnUrl})`;
@@ -308,7 +289,6 @@ createApp({
             } catch (e) { alert('單據 JSON 解析失敗'); console.error(e); }
         },
 
-        // --- Core Logic ---
         updateCalculatedAmount() {
             let baseAmount = 0;
             if (this.isShoppingCategory) { baseAmount = (this.newExpense.items || []).reduce((sum, item) => sum + (item.price * item.qty), 0); this.newExpense.subtotal = baseAmount; } else { baseAmount = this.newExpense.subtotal || 0; }
@@ -316,7 +296,6 @@ createApp({
             this.newExpense.amount = parseFloat(Math.max(0, baseAmount - discount).toFixed(1));
         },
         
-        // ... (Keep other methods: addCartItemManual, openAddModal, saveItem, etc.) ...
         addCartItemManual(){ this.newExpense.items.push({itemId:'MANUAL', name:'新項目', brand:'', price:0, qty:1}); },
         openAddModal(){this.editingForm={categoryId:'99',stock:1,brand:''};this.showAddModal=true;},closeModal(){this.showAddModal=false;this.showEditModal=false;this.editingForm={};},saveItem(){if(!this.editingForm.name)return alert('名稱必填');if(this.showEditModal){const idx=this.inventory.findIndex(i=>i.id===this.editingForm.id);if(idx!==-1)this.inventory[idx]={...this.editingForm};}else{this.editingForm.id=Date.now().toString();this.inventory.push(this.editingForm);}this.saveData();this.closeModal();this.selectedIds=[];},actionDelete(){if(!confirm('刪除？'))return;this.inventory=this.inventory.filter(i=>!this.selectedIds.includes(i.id));this.selectedIds=[];this.saveData();},actionEdit(){if(this.selectedItems.length!==1)return;this.editingForm=JSON.parse(JSON.stringify(this.selectedItems[0]));this.showEditModal=true;},updateStock(item,change){item.stock=Math.max(0,(item.stock||0)+change);this.saveData();},onCategoryChange(){this.selectedStore=this.currentCompanyOptions[0]||'other';this.customStoreInput='';},addCartItem(){if(!this.selectedInventoryItem)return;if(this.tempQty<1)return alert('數量至少為 1');if(!this.newExpense.items)this.newExpense.items=[];this.newExpense.items.push({itemId:this.selectedInventoryItem.id,name:this.selectedInventoryItem.name,brand:this.selectedInventoryItem.brand||'',price:this.selectedInventoryItem.latestPrice||0,qty:this.tempQty});this.tempQty=1;this.selectedInventoryItem=null;},removeCartItem(idx){this.newExpense.items.splice(idx,1);},
         saveExpense(){
