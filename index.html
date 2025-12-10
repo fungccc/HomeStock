@@ -3,83 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>好男人智慧家居 v12.0</title>
+    <title>好男人智慧家居 v12.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
     <style>
         /* --- 全局佈局 (App Shell) --- */
-        html, body { height: 100%; overflow: hidden; /* 禁止整頁捲動，改用區域捲動 */ background-color: #f5f7fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        
+        html, body { height: 100%; overflow: hidden; background-color: #f5f7fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         #app { display: flex; height: 100vh; width: 100vw; }
 
         /* --- 1. 側邊欄 (Desktop Sidebar) --- */
-        .sidebar { width: 240px; background: #fff; border-right: 1px solid #eee; display: flex; flex-direction: column; padding: 20px; z-index: 100; transition: all 0.3s; }
-        .sidebar-brand { font-size: 1.2rem; font-weight: 800; color: #333; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .sidebar { width: 240px; background: #fff; border-right: 1px solid #eee; display: flex; flex-direction: column; padding: 20px; z-index: 100; transition: all 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.02); }
+        .sidebar-brand { font-size: 1.2rem; font-weight: 800; color: #333; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; padding-left: 10px; }
         .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
         .sidebar-item { margin-bottom: 8px; }
         .sidebar-link { display: flex; align-items: center; padding: 12px 15px; color: #666; text-decoration: none; border-radius: 12px; transition: all 0.2s; font-weight: 500; }
-        .sidebar-link:hover { background-color: #f8f9fa; color: #0d6efd; }
-        .sidebar-link.active { background-color: #e7f1ff; color: #0d6efd; font-weight: 700; }
+        .sidebar-link:hover { background-color: #f8f9fa; color: #0d6efd; transform: translateX(3px); }
+        .sidebar-link.active { background-color: #e7f1ff; color: #0d6efd; font-weight: 700; box-shadow: 0 2px 6px rgba(13, 110, 253, 0.15); }
         .sidebar-link i { font-size: 1.2rem; margin-right: 12px; width: 24px; text-align: center; }
-        .sidebar-footer { font-size: 0.75rem; color: #adb5bd; text-align: center; margin-top: auto; }
+        /* 桌面版署名 */
+        .sidebar-footer { font-size: 0.7rem; color: #adb5bd; text-align: center; margin-top: auto; padding-top: 20px; border-top: 1px solid #f0f0f0; letter-spacing: 0.5px; }
 
         /* --- 2. 底部導航 (Mobile Bottom Bar) --- */
-        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #eee; padding: 8px 0 20px 0; justify-content: space-around; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.03); }
-        .nav-btn { display: flex; flex-direction: column; align-items: center; color: #999; text-decoration: none; font-size: 0.7rem; flex: 1; }
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #eee; padding: 8px 0 25px 0; justify-content: space-around; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.03); }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; color: #999; text-decoration: none; font-size: 0.7rem; flex: 1; transition: color 0.2s; }
         .nav-btn i { font-size: 1.4rem; margin-bottom: 2px; }
-        .nav-btn.active { color: #0d6efd; }
+        .nav-btn.active { color: #0d6efd; transform: scale(1.05); }
 
         /* --- 3. 主內容區 (Main Content) --- */
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 80px; /* Space for bottom nav */ position: relative; scroll-behavior: smooth; }
+        .main-content { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; position: relative; scroll-behavior: smooth; }
         
-        /* 響應式切換 (RWD) */
+        /* 手機版署名 (固定在底部導航上方) */
+        .mobile-footer { display: none; position: fixed; bottom: 70px; left: 0; width: 100%; text-align: center; color: #adb5bd; font-size: 0.65rem; z-index: 50; pointer-events: none; text-shadow: 0 1px 2px rgba(255,255,255,0.8); }
+
+        /* 響應式切換 */
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .bottom-nav { display: flex; }
-            .main-content { padding: 15px; padding-bottom: 90px; }
+            .main-content { padding: 15px; padding-bottom: 120px; }
+            .mobile-footer { display: block; }
         }
 
-        /* --- UI 元件樣式 --- */
-        .card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 15px; background: #fff; }
+        /* --- UI 元件優化 --- */
+        /* 卡片懸浮效果 */
+        .card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 15px; background: #fff; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+        /* 輸入框接收區 */
+        .import-receiver { background-color: #fffdf0; border: 2px solid #ffc107; scroll-margin-top: 20px; animation: none; } /* v12.1: 靜態背景 */
+        
         .page-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .page-title { font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin: 0; }
         
-        /* Sub-Tabs (第二層導航) */
-        .sub-tabs { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-        .sub-tab-btn { border: 1px solid #eee; background: #fff; padding: 6px 16px; border-radius: 20px; color: #666; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s; text-decoration: none; }
-        .sub-tab-btn.active { background: #333; color: #fff; border-color: #333; }
+        /* Sub-Tabs */
+        .sub-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .sub-tab-btn { border: 1px solid #e9ecef; background: #fff; padding: 6px 16px; border-radius: 20px; color: #666; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s; text-decoration: none; font-weight: 500; }
+        .sub-tab-btn:hover { background: #f8f9fa; }
+        .sub-tab-btn.active { background: #333; color: #fff; border-color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         
-        /* 其他繼承樣式 */
-        .category-tag { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; color: #666; display: inline-block; margin-right: 4px;}
-        .brand-tag { font-size: 0.7rem; padding: 2px 6px; background: #e3f2fd; border-radius: 4px; color: #0d6efd; display: inline-block; margin-right: 4px;}
-        .item-name { font-weight: 600; font-size: 1rem; color: #333; }
-        .price-tag { font-size: 0.9rem; color: #198754; font-weight: bold; margin-right: 5px; }
-        .unit-price { font-size: 0.75rem; color: #888; margin-right: 5px; }
-        .link-icon, .map-btn { color: #0d6efd; text-decoration: none; margin-left: 5px; }
-        .map-btn { color: #dc3545; }
-        .search-box { position: relative; }
-        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; }
-        .search-box input { padding-left: 40px; border-radius: 20px; height: 45px; background: #f8f9fa; border: 1px solid #eee; }
-        
-        /* Toast & Loading */
+        /* 浮動操作列 (Contextual) */
+        .floating-bar { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(33, 37, 41, 0.95); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 50px; box-shadow: 0 5px 25px rgba(0,0,0,0.25); display: flex; gap: 20px; z-index: 900; align-items: center; }
+        .floating-btn { border: none; background: none; display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #fff; cursor: pointer; min-width: 40px; transition: opacity 0.2s; }
+        .floating-btn:active { opacity: 0.7; }
+        .floating-btn i { font-size: 1.3rem; margin-bottom: 2px; }
+        @media (min-width: 769px) { .floating-bar { bottom: 30px; } }
+
+        /* Notification Toast */
         .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; max-width: 300px; width: 90%; pointer-events: none; }
-        .toast { pointer-events: auto; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); overflow: hidden; opacity: 0.95; }
+        .toast { pointer-events: auto; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); overflow: hidden; opacity: 0.95; border: none; }
         .toast-success { background-color: #198754; color: white; }
         .toast-danger { background-color: #dc3545; color: white; }
         .toast-warning { background-color: #ffc107; color: #000; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(4px); }
+
+        /* Loading Overlay */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
         
-        /* Import Area & AI */
-        .import-receiver { background-color: #fffdf0; border: 2px solid #ffc107; scroll-margin-top: 20px; }
+        /* Modal Backdrop Fix (Prevent accidental close) */
+        .modal { background: rgba(0,0,0,0.6); } 
+        
+        /* Helpers */
+        .category-tag { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; border-radius: 4px; color: #666; }
+        .item-name { font-weight: 600; font-size: 1rem; color: #333; }
+        .price-tag { font-size: 0.9rem; color: #198754; font-weight: bold; margin-right: 5px; }
+        .unit-price { font-size: 0.75rem; color: #888; margin-right: 5px; }
+        .link-icon, .map-btn { color: #0d6efd; text-decoration: none; margin-left: 5px; padding: 5px; display: inline-block; }
+        .map-btn { color: #dc3545; }
+        .sortable-header { cursor: pointer; user-select: none; }
         .ai-action-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
-        /* Floating Action Bar (Contextual) */
-        .floating-bar { position: fixed; bottom: 80px; /* Higher on mobile */ left: 50%; transform: translateX(-50%); background: rgba(33, 37, 41, 0.95); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 50px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); display: flex; gap: 20px; z-index: 900; align-items: center; }
-        .floating-btn { border: none; background: none; display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #fff; cursor: pointer; min-width: 40px; }
-        .floating-btn i { font-size: 1.3rem; margin-bottom: 2px; }
-        
-        @media (min-width: 769px) { .floating-bar { bottom: 30px; } }
+        .settings-btn { text-align: left; padding: 12px; height: 100%; display: flex; align-items: center; }
+        .settings-btn i { font-size: 1.5rem; margin-right: 10px; }
+        .guide-box { background: #fffcf5; border: 1px solid #faeccc; border-radius: 8px; padding: 15px; font-size: 0.9rem; color: #555; }
     </style>
 </head>
 <body>
@@ -102,11 +114,10 @@
             <li class="sidebar-item"><a href="#" class="sidebar-link" :class="{active: currentTab === 'expenses'}" @click="currentTab = 'expenses'"><i class="bi bi-receipt"></i> 賬單紀錄</a></li>
             <li class="sidebar-item"><a href="#" class="sidebar-link" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'"><i class="bi bi-gear"></i> 系統設定</a></li>
         </ul>
-        <div class="sidebar-footer">豐狂出品 • v12.0</div>
+        <div class="sidebar-footer">豐狂出品 • 智慧管家</div>
     </aside>
 
     <main class="main-content">
-        
         <header class="d-md-none mb-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold">👨‍💼 智慧管家</h5>
             <span class="badge bg-light text-dark border">{{ getCategoryNameFromTab() }}</span>
@@ -115,7 +126,7 @@
         <div v-if="currentTab === 'inventory'">
             <div class="page-header d-none d-md-flex">
                 <h2 class="page-title">物品管理</h2>
-                <button @click="openAddModal" class="btn btn-primary rounded-pill"><i class="bi bi-plus-lg"></i> 新增物品</button>
+                <button @click="openAddModal" class="btn btn-primary rounded-pill shadow-sm"><i class="bi bi-plus-lg"></i> 新增物品</button>
             </div>
 
             <div class="sub-tabs">
@@ -129,48 +140,39 @@
             </div>
 
             <div class="card p-3 mb-3">
-                <div class="d-flex gap-2 mb-2">
+                <div class="d-flex gap-2 mb-3">
                     <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input v-model="searchQuery" type="text" class="form-control" placeholder="搜尋名稱..."></div>
+                    <button @click="openAiInventoryModal" class="btn ai-action-btn text-white rounded-circle shadow" style="width: 45px; height: 45px; padding: 0; font-size: 1.2rem;"><i class="bi bi-robot"></i></button>
                 </div>
-                <div class="row g-2 align-items-center">
-                    <div class="col-4"><select v-model="filterCategory" class="form-select form-select-sm"><option value="">類別</option><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div>
-                    <div class="col-4"><select v-model="filterBrand" class="form-select form-select-sm"><option value="">品牌</option><option v-for="b in uniqueBrands" :value="b">{{ b }}</option></select></div>
-                    <div class="col-4"><select v-model="sortOption" class="form-select form-select-sm"><option value="default">排序</option><option value="stock_asc">庫存少</option><option value="stock_desc">庫存多</option></select></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-12 col-md-4"><select v-model="filterCategory" class="form-select"><option value="">所有類別</option><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div>
+                    <div class="col-6 col-md-4"><select v-model="filterBrand" class="form-select"><option value="">所有品牌</option><option v-for="b in uniqueBrands" :value="b">{{ b }}</option></select></div>
+                    <div class="col-6 col-md-4"><select v-model="sortOption" class="form-select"><option value="default">默認排序</option><option value="stock_asc">庫存: 少→多</option><option value="stock_desc">庫存: 多→少</option></select></div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top"><span class="small text-muted">共 {{ filteredInventory.length }} 項</span><div class="form-check"><input class="form-check-input" type="checkbox" id="selectAllInv" :checked="isAllInventorySelected" @click="toggleSelectAllInventory"><label class="form-check-label small text-muted" for="selectAllInv">全選</label></div></div>
+                <div class="d-flex justify-content-between align-items-center mt-2"><span class="small text-muted fw-bold">共 {{ filteredInventory.length }} 項</span><div class="form-check"><input class="form-check-input" type="checkbox" id="selectAllInv" :checked="isAllInventorySelected" @click="toggleSelectAllInventory"><label class="form-check-label text-muted" for="selectAllInv">全選</label></div></div>
             </div>
 
             <div class="card p-0 overflow-hidden">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead class="table-light"><tr><th class="ps-3 sortable-header" @click="toggleSort('name')">物品 <i class="bi" :class="getSortIcon('name')"></i></th><th class="text-center sortable-header" style="min-width: 80px;" @click="toggleSort('stock')">庫存 <i class="bi" :class="getSortIcon('stock')"></i></th><th class="text-center" style="width: 40px;">選</th></tr></thead>
+                        <thead class="table-light"><tr><th class="ps-3 sortable-header" @click="toggleSort('name')">物品 <i class="bi" :class="getSortIcon('name')"></i></th><th class="text-center sortable-header" style="min-width: 80px;" @click="toggleSort('stock')">庫存 <i class="bi" :class="getSortIcon('stock')"></i></th><th class="text-center" style="width: 50px;">選</th></tr></thead>
                         <tbody>
                             <tr v-for="item in filteredInventory" :key="item.id" :class="{'table-active': isSelected(item)}">
-                                <td class="ps-3 py-3" @click="toggleSelection(item)"><div class="mb-1"><span class="category-tag">{{ getCategoryName(item.categoryId) }}</span><span v-if="item.brand" class="brand-tag">{{ item.brand }}</span></div><div><span class="item-name">{{ item.name }}</span><a v-if="item.url" :href="item.url" target="_blank" class="link-icon ms-1" @click.stop><i class="bi bi-box-arrow-up-right"></i></a></div><div class="info-row"><span class="price-tag">{{ item.latestPrice ? '$'+item.latestPrice : '' }}</span><span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span></div></td>
-                                <td class="text-center align-middle"><div class="btn-group btn-group-sm"><button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-2">-</button><button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:30px">{{ item.stock }}</button><button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-2">+</button></div></td>
-                                <td class="text-center align-middle" @click="toggleSelection(item)"><input type="checkbox" class="form-check-input" :checked="isSelected(item)"></td>
+                                <td class="ps-3 py-3" @click="toggleSelection(item)"><div class="mb-1"><span class="category-tag">{{ getCategoryName(item.categoryId) }}</span><span v-if="item.brand" class="category-tag bg-primary-subtle text-primary">{{ item.brand }}</span></div><div><span class="item-name">{{ item.name }}</span><a v-if="item.url" :href="item.url" target="_blank" class="link-icon ms-2" @click.stop><i class="bi bi-box-arrow-up-right"></i></a></div><div class="info-row"><span class="price-tag">{{ item.latestPrice ? '$'+item.latestPrice : '' }}</span><span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span></div></td>
+                                <td class="text-center align-middle"><div class="btn-group btn-group-sm"><button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-3" style="font-size: 1.1rem;">-</button><button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:35px; font-size: 1rem;">{{ item.stock }}</button><button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-3" style="font-size: 1.1rem;">+</button></div></td>
+                                <td class="text-center align-middle" @click="toggleSelection(item)"><input type="checkbox" class="form-check-input" style="transform: scale(1.3);" :checked="isSelected(item)"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
             
-            <div v-if="selectedItems.length === 0" class="d-md-none" style="position: fixed; bottom: 90px; right: 20px; z-index: 999;"><button @click="openAddModal" class="btn btn-primary rounded-circle shadow p-0" style="width: 56px; height: 56px; font-size: 24px;"><i class="bi bi-plus-lg"></i></button></div>
-            
-            <div v-if="selectedItems.length > 0" class="floating-bar">
-                <button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button>
-                <button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button>
-                <button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button>
-                <button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button>
-            </div>
+            <div v-if="selectedItems.length === 0" class="d-md-none" style="position: fixed; bottom: 90px; right: 20px; z-index: 999;"><button @click="openAddModal" class="btn btn-primary rounded-circle shadow p-0" style="width: 60px; height: 60px; font-size: 28px;"><i class="bi bi-plus-lg"></i></button></div>
+            <div v-if="selectedItems.length > 0" class="floating-bar"><button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button><button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button><button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button><button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button></div>
         </div>
 
         <div v-if="currentTab === 'expenses'">
-            <div class="page-header d-none d-md-flex">
-                <h2 class="page-title">賬單紀錄</h2>
-                <button @click="showMonthlySummary" class="btn btn-outline-primary rounded-pill"><i class="bi bi-calendar-check"></i> 統計報表</button>
-            </div>
-
+            <div class="page-header d-none d-md-flex"><h2 class="page-title">賬單紀錄</h2><button @click="showMonthlySummary" class="btn btn-outline-primary rounded-pill"><i class="bi bi-calendar-check"></i> 統計報表</button></div>
             <div class="sub-tabs">
                 <a href="#" class="sub-tab-btn" :class="{active: !showAiReceiptPanel}" @click="showAiReceiptPanel=false">🧾 列表</a>
                 <a href="#" class="sub-tab-btn" :class="{active: showAiReceiptPanel}" @click="openAiReceiptModal">🤖 AI 掃單</a>
@@ -179,7 +181,7 @@
 
             <div v-if="showAiReceiptPanel" class="card mb-3 import-receiver" ref="receiptPanel">
                 <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center"><span><i class="bi bi-receipt"></i> 步驟 2: 貼上單據 JSON</span><button @click="showAiReceiptPanel = false" class="btn-close btn-sm"></button></div>
-                <div class="card-body"><textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="請長按貼上..."></textarea><div class="d-grid gap-2"><button @click="processReceiptJson" class="btn btn-warning fw-bold">解析並填入表單</button></div></div>
+                <div class="card-body"><textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="請長按貼上..."></textarea><div class="d-grid gap-2"><button @click="testReceiptJson" class="btn btn-outline-secondary">測試範本</button><button @click="processReceiptJson" class="btn btn-warning fw-bold">解析並填入表單</button></div></div>
             </div>
 
             <div class="card p-3 mb-3 border-primary" ref="expenseFormCard">
@@ -194,7 +196,7 @@
                         <div class="bg-light p-2 rounded border">
                             <div class="d-flex justify-content-between align-items-center mb-2"><label class="small fw-bold mb-0">明細</label><button v-if="isShoppingCategory" @click="addCartItemManual" class="btn btn-sm btn-outline-secondary py-0">+ 手動</button></div>
                             <div v-if="isShoppingCategory" class="input-group mb-2"><select v-model="selectedInventoryItem" class="form-select form-select-sm"><option :value="null">-- 從庫存選 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select><input v-model.number="tempQty" type="number" class="form-control form-select-sm" placeholder="量" style="max-width: 60px;" min="1"><button @click="addCartItem" class="btn btn-sm btn-primary" :disabled="!selectedInventoryItem">加入</button></div>
-                            <div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 70px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div></div></div>
+                            <div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 70px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2 fs-5" style="cursor:pointer; vertical-align: middle;"></i></div></div></div>
                             <div v-if="(!newExpense.items || newExpense.items.length===0) && isShoppingCategory" class="text-center text-muted small py-2">暫無明細</div>
                         </div>
                     </div>
@@ -202,7 +204,7 @@
                     <div v-if="!isShoppingCategory" class="col-12 mt-2"><label class="small text-muted fw-bold">帳單原額</label><input v-model.number="newExpense.subtotal" type="number" class="form-control" placeholder="輸入金額"></div>
                     <div class="col-12 mt-2"><div class="cart-summary border p-2 rounded bg-white"><div class="row g-2 align-items-center"><div class="col-5"><label class="small text-muted">折扣</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div><div class="col-7 text-end"><label class="small text-muted d-block">實付金額</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-4" readonly></div></div></div></div>
                     <div class="col-12"><label class="small text-muted">備註/單號</label><input v-model="newExpense.refNumber" class="form-control" placeholder="選填"></div>
-                    <div class="col-12 mt-3"><button @click="saveExpense" class="btn w-100 py-2" :class="isEditingExpense ? 'btn-warning' : 'btn-primary'">{{ isEditingExpense ? '更新紀錄' : '儲存紀錄' }}</button></div>
+                    <div class="col-12 mt-3"><button @click="saveExpense" class="btn w-100 py-2 fs-6" :class="isEditingExpense ? 'btn-warning' : 'btn-primary'">{{ isEditingExpense ? '更新紀錄' : '儲存紀錄' }}</button></div>
                 </div>
             </div>
 
@@ -216,37 +218,19 @@
 
         <div v-if="currentTab === 'settings'">
             <div class="page-header d-none d-md-flex"><h2 class="page-title">系統設定</h2></div>
-            
-            <div class="sub-tabs">
-                <a href="#" class="sub-tab-btn" :class="{active: settingsTab==='cloud'}" @click="settingsTab='cloud'">☁️ 雲端同步</a>
-                <a href="#" class="sub-tab-btn" :class="{active: settingsTab==='local'}" @click="settingsTab='local'">💾 本機備份</a>
-                <a href="#" class="sub-tab-btn" :class="{active: settingsTab==='api'}" @click="settingsTab='api'">🔑 API 設定</a>
-            </div>
+            <div class="sub-tabs"><a href="#" class="sub-tab-btn" :class="{active: settingsTab==='cloud'}" @click="settingsTab='cloud'">☁️ 雲端同步</a><a href="#" class="sub-tab-btn" :class="{active: settingsTab==='local'}" @click="settingsTab='local'">💾 本機備份</a><a href="#" class="sub-tab-btn" :class="{active: settingsTab==='api'}" @click="settingsTab='api'">🔑 API 設定</a></div>
 
             <div v-if="settingsTab === 'cloud'" class="card p-3 border-info">
                 <h5 class="text-primary fw-bold mb-3"><i class="bi bi-cloud-check"></i> Google Sheets 同步</h5>
-                <div class="alert alert-light border small text-muted"><i class="bi bi-info-circle"></i> 請填入您部署的 Web App URL 來啟用同步。</div>
                 <div class="mb-3"><input v-model="gasUrl" type="password" class="form-control" placeholder="https://script.google.com/..."></div>
-                <div class="row g-2">
-                    <div class="col-6"><button @click="syncCloud('backup', 'inventory')" class="btn btn-primary w-100">備份庫存</button></div>
-                    <div class="col-6"><button @click="syncCloud('restore', 'inventory')" class="btn btn-outline-primary w-100">還原庫存</button></div>
-                    <div class="col-6"><button @click="syncCloud('backup', 'expenses')" class="btn btn-success w-100">備份帳單</button></div>
-                    <div class="col-6"><button @click="syncCloud('restore', 'expenses')" class="btn btn-outline-success w-100">還原帳單</button></div>
-                </div>
-                <div class="mt-3 text-center"><span class="text-primary small" style="cursor:pointer; text-decoration: underline;" @click="showDeployGuide=!showDeployGuide">顯示部署教學</span></div>
+                <div class="d-grid gap-2"><div class="btn-group"><button @click="syncCloud('backup', 'inventory')" class="btn btn-primary btn-sm">備份庫存</button><button @click="syncCloud('restore', 'inventory')" class="btn btn-outline-primary btn-sm">還原庫存</button></div><div class="btn-group"><button @click="syncCloud('backup', 'expenses')" class="btn btn-success btn-sm">備份帳單</button><button @click="syncCloud('restore', 'expenses')" class="btn btn-outline-success btn-sm">還原帳單</button></div></div>
+                <div class="mt-3 text-center"><span class="text-primary small" style="cursor:pointer; text-decoration: underline;" @click="showDeployGuide=!showDeployGuide">顯示教學</span></div>
                 <div v-if="showDeployGuide" class="guide-box mt-2 small"><ol class="ps-3 mb-0"><li>建立 Sheet: HomeStockDB</li><li>Apps Script 貼代碼</li><li>部署為 Web App (Me/Anyone)</li></ol><button class="btn btn-sm btn-light mt-2 w-100" @click="copyGasCode">複製 GAS 代碼</button></div>
             </div>
 
             <div v-if="settingsTab === 'local'" class="card p-3">
                 <h5 class="mb-3">本機檔案管理</h5>
-                <div class="d-grid gap-2">
-                    <button @click="prepareFileExport('json')" class="btn btn-outline-primary text-start p-3"><i class="bi bi-filetype-json me-2"></i> 完整備份 (JSON)</button>
-                    <button @click="prepareFileExport('inventory_csv')" class="btn btn-outline-success text-start p-3"><i class="bi bi-file-earmark-spreadsheet me-2"></i> 匯出庫存 CSV</button>
-                    <button @click="prepareFileExport('expense_csv')" class="btn btn-outline-info text-start p-3"><i class="bi bi-file-earmark-text me-2"></i> 匯出帳單 CSV</button>
-                </div>
-                <hr>
-                <label class="form-label fw-bold">📥 資料還原</label>
-                <input type="file" ref="fileInput" @change="handleFileImport" class="form-control" accept=".json,.csv">
+                <div class="d-grid gap-2"><button @click="prepareFileExport('json')" class="btn btn-outline-primary text-start p-3"><i class="bi bi-filetype-json me-2"></i> 完整備份</button><button @click="prepareFileExport('inventory_csv')" class="btn btn-outline-success text-start p-3"><i class="bi bi-file-earmark-spreadsheet me-2"></i> 匯出庫存</button><button @click="prepareFileExport('expense_csv')" class="btn btn-outline-info text-start p-3"><i class="bi bi-file-earmark-text me-2"></i> 匯出帳單</button></div><hr><label class="form-label fw-bold">📥 資料還原</label><input type="file" ref="fileInput" @change="handleFileImport" class="form-control" accept=".json,.csv">
             </div>
 
             <div v-if="settingsTab === 'api'" class="card p-3">
@@ -262,48 +246,37 @@
         <a href="#" class="nav-btn" :class="{active: currentTab === 'expenses'}" @click="currentTab = 'expenses'"><i class="bi bi-receipt"></i><span>賬單</span></a>
         <a href="#" class="nav-btn" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'"><i class="bi bi-gear"></i><span>設定</span></a>
     </nav>
+    <div class="mobile-footer d-md-none">豐狂出品 • 智慧管家</div>
 
-    <div v-if="showAiInventoryModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI = 'gemini'" type="button" class="btn btn-sm" :class="selectedAI === 'gemini' ? 'btn-primary' : 'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" type="button" class="btn btn-sm" :class="selectedAI === 'grok' ? 'btn-dark' : 'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" type="button" class="btn btn-sm" :class="selectedAI === 'chatgpt' ? 'btn-success' : 'btn-outline-success'">ChatGPT</button></div><p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p><textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea><div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div></div></div></div></div>
+    <div v-if="showAiInventoryModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI='gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI='grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI='chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p><textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea><div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div></div></div></div></div>
     
-    <div v-if="showAiReceiptModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3"><button @click="selectedAI = 'gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button><div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div></div></div></div></div>
+    <div v-if="showAiReceiptModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3"><button @click="selectedAI='gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI='grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI='chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button><div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div></div></div></div></div>
 
-    <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length === 0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
-    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title">警告：資料庫空白！</h5></div><div class="modal-body"><p>您可能在 App 內部瀏覽器中。請用 Safari/Chrome 開啟。</p></div><div class="modal-footer"><button @click="showLostDataWarning = false" class="btn btn-secondary">關閉</button></div></div></div></div>
-    <div v-if="showFileExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">📤 檔案輸出</h5><button @click="showFileExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-3"><button @click="executeExport('share')" class="btn btn-lg btn-success text-start"><i class="bi bi-whatsapp me-2"></i> <b>系統分享</b></button><button @click="executeExport('download')" class="btn btn-lg btn-outline-secondary text-start"><i class="bi bi-download me-2"></i> <b>下載檔案</b></button></div></div></div></div>
-    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
-    <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div v-if="viewingOrder.address" class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> {{ viewingOrder.address }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
+    <div v-if="showMonthlyModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length===0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
+    <div v-if="showLostDataWarning" class="modal d-block" style="z-index: 2000;"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title">警告：資料庫空白！</h5></div><div class="modal-body"><p>您可能在 App 內部瀏覽器中。請用 Safari/Chrome 開啟。</p></div><div class="modal-footer"><button @click="showLostDataWarning=false" class="btn btn-secondary">關閉</button></div></div></div></div>
+    <div v-if="showFileExportModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">📤 檔案輸出</h5><button @click="showFileExportModal=false" class="btn-close"></button></div><div class="modal-body d-grid gap-3"><button @click="executeExport('share')" class="btn btn-lg btn-success text-start"><i class="bi bi-whatsapp me-2"></i> <b>系統分享</b></button><button @click="executeExport('download')" class="btn btn-lg btn-outline-secondary text-start"><i class="bi bi-download me-2"></i> <b>下載檔案</b></button></div></div></div></div>
+    <div v-if="showExportModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal=false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
     
-    <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model.number="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
+    <div v-if="showOrderDetailModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal=false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div v-if="viewingOrder.address" class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> {{ viewingOrder.address }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
+    
+    <div v-if="showAddModal || showEditModal" class="modal d-block"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model.number="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
 </div>
 
 <script>
 const { createApp } = Vue;
-
 createApp({
     data() {
         return {
-            currentTab: 'inventory', geminiMode: 'app', apiKey: '', searchQuery: '', gasUrl: '', settingsTab: 'cloud', // Default settings tab
+            currentTab: 'inventory', geminiMode: 'app', apiKey: '', searchQuery: '', gasUrl: '', settingsTab: 'cloud',
             isLoading: false, loadingMessage: '', showDeployGuide: false,
             selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [], inputMode: 'text',
-            
-            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false, showFileExportModal: false, showAiInventoryModal: false, showAiReceiptModal: false,
-            showAiImportPanel: false, showAiReceiptPanel: false,
-            
+            showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false, showFileExportModal: false, showAiInventoryModal: false, showAiReceiptModal: false, showAiImportPanel: false, showAiReceiptPanel: false,
             exportActionType: '', editingForm: {}, viewingOrder: {}, monthlyStats: [],
             importJsonText: '', receiptJsonText: '', pastedText: '', isAnalyzing: false, selectedItemForAnalysis: null, 
-            isWaitingForPaste: false, isWaitingForReceiptPaste: false, 
-            currentImportType: '', currentExportType: '', stagedItems: [],
-
-            // v8.9 Data
-            filterCategory: '', filterBrand: '', sortOption: 'default',
-            colSortKey: '', colSortOrder: 'asc',
-            expenseSearchQuery: '', selectedExpenseIds: [],
-            expenseSortKey: 'date', expenseSortOrder: 'desc',
-
+            isWaitingForPaste: false, isWaitingForReceiptPaste: false, currentImportType: '', currentExportType: '', stagedItems: [],
+            filterCategory: '', filterBrand: '', sortOption: 'default', colSortKey: '', colSortOrder: 'asc', expenseSearchQuery: '', selectedExpenseIds: [], expenseSortKey: 'date', expenseSortOrder: 'desc',
             newExpense: { date: new Date().toISOString().split('T')[0], category: '超級市場', amount: 0, subtotal: 0, note: '', refNumber: '', items: [], discount: 0, address: '', mapUrl: '' },
-            selectedInventoryItem: null, tempQty: 1, selectedStore: '', customStoreInput: '',
-            isEditingExpense: false, editingExpenseIndex: -1,
-
+            selectedInventoryItem: null, tempQty: 1, selectedStore: '', customStoreInput: '', isEditingExpense: false, editingExpenseIndex: -1,
             companyDB: { "水費": [], "電費": [], "煤氣/石油氣": [], "私家車入油": [], "寬頻": [], "電話費": [], "雲端及AI": [], "串流影片": [], "音樂串流": [], "健身會籍": [], "醫療保險": [], "按揭供款": [], "管理費": [], "超級市場": [], "飲食": [], "交通(八達通)": [], "車資": [], "網購": [] },
             defaultCompanies: { "水費": ["水務署"], "電費": ["中電", "港燈"], "超級市場": ["惠康", "百佳"], "飲食": ["麥當勞", "大家樂"] }, 
             categories: [ { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' }, { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' } ],
@@ -318,19 +291,13 @@ createApp({
             if (query) list = list.filter(i => (i.name||'').toLowerCase().includes(query) || (i.brand||'').toLowerCase().includes(query));
             if (this.filterCategory) list = list.filter(i => i.categoryId === this.filterCategory);
             if (this.filterBrand) list = list.filter(i => i.brand === this.filterBrand);
-            if (this.colSortKey) {
-                 list.sort((a, b) => {
-                    let valA = a[this.colSortKey] || ''; let valB = b[this.colSortKey] || '';
-                    if (typeof valA === 'number') return this.colSortOrder === 'asc' ? valA - valB : valB - valA;
-                    return this.colSortOrder === 'asc' ? valA.toString().localeCompare(valB) : valB.toString().localeCompare(valA);
-                });
-            } else if (this.sortOption === 'stock_asc') list.sort((a, b) => (a.stock || 0) - (b.stock || 0));
+            if (this.colSortKey) list.sort((a, b) => { let valA=a[this.colSortKey]||''; let valB=b[this.colSortKey]||''; if(typeof valA==='number') return this.colSortOrder==='asc'?valA-valB:valB-valA; return this.colSortOrder==='asc'?valA.toString().localeCompare(valB):valB.toString().localeCompare(valA); });
+            else if (this.sortOption === 'stock_asc') list.sort((a, b) => (a.stock || 0) - (b.stock || 0));
             else if (this.sortOption === 'stock_desc') list.sort((a, b) => (b.stock || 0) - (a.stock || 0));
             return list;
         },
         isAllInventorySelected() { return this.filteredInventory.length > 0 && this.selectedIds.length === this.filteredInventory.length; },
         selectedItems() { return this.inventory.filter(item => this.selectedIds.includes(item.id)); },
-        
         filteredExpenses() {
             let list = this.expenses;
             const query = this.expenseSearchQuery.toLowerCase().trim();
@@ -345,28 +312,13 @@ createApp({
     watch: { 'newExpense.items': { handler() { this.updateCalculatedAmount(); }, deep: true }, 'newExpense.discount': function() { this.updateCalculatedAmount(); }, 'newExpense.subtotal': function() { this.updateCalculatedAmount(); } },
     mounted() { 
         this.loadData(); this.selectedStore = this.currentCompanyOptions[0] || 'other';
-        // v9.4 Smart Merge
-        if (Object.keys(this.companyDB).length === 0) {
-             for(let k in this.defaultCompanies) { this.companyDB[k] = this.defaultCompanies[k].map(n => ({ name: n, address: '', mapUrl: '' })); }
-        } else {
-             for(let k in this.defaultCompanies) {
-                 if (!this.companyDB[k] || this.companyDB[k].length === 0) {
-                     this.companyDB[k] = this.defaultCompanies[k].map(n => ({ name: n, address: '', mapUrl: '' }));
-                 }
-             }
-        }
-
+        // v9.4 Smart Merge (Fix)
+        if (Object.keys(this.companyDB).length === 0) { for(let k in this.defaultCompanies) { this.companyDB[k] = this.defaultCompanies[k].map(n => ({ name: n, address: '', mapUrl: '' })); } } 
+        else { for(let k in this.defaultCompanies) { if (!this.companyDB[k] || this.companyDB[k].length === 0) { this.companyDB[k] = this.defaultCompanies[k].map(n => ({ name: n, address: '', mapUrl: '' })); } } }
         const params = new URLSearchParams(window.location.search);
         const hash = window.location.hash;
-        
-        if (hash.includes('import_inventory')) {
-            this.currentTab = 'inventory'; this.showAiImportPanel = true; this.clearHash();
-            setTimeout(() => { if (this.$refs.inventoryPasteRef) { this.$refs.inventoryPasteRef.focus(); this.$refs.inventoryPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500);
-        } else if (hash.includes('import_expenses')) {
-            this.currentTab = 'expenses'; this.showAiReceiptPanel = true; this.clearHash();
-            setTimeout(() => { if (this.$refs.receiptPasteRef) { this.$refs.receiptPasteRef.focus(); this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500);
-        }
-        
+        if (hash.includes('import_inventory')) { this.currentTab = 'inventory'; this.showAiImportPanel = true; this.clearHash(); setTimeout(() => { if (this.$refs.inventoryPasteRef) { this.$refs.inventoryPasteRef.focus(); this.$refs.inventoryPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500); } 
+        else if (hash.includes('import_expenses')) { this.currentTab = 'expenses'; this.showAiReceiptPanel = true; this.clearHash(); setTimeout(() => { if (this.$refs.receiptPasteRef) { this.$refs.receiptPasteRef.focus(); this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500); }
         if ((this.inventory.length === 0 && this.expenses.length === 0) && params.get('openImport') === 'true') { this.showLostDataWarning = true; }
     },
     methods: {
@@ -374,44 +326,18 @@ createApp({
         removeToast(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
         getToastIcon(type) { if(type==='success') return 'bi-check-circle-fill'; if(type==='danger') return 'bi-x-circle-fill'; return 'bi-info-circle-fill'; },
         getCategoryNameFromTab() { if(this.currentTab==='inventory') return '物品管理'; if(this.currentTab==='expenses') return '賬單列表'; return '系統設定'; },
-        
         saveData() { localStorage.setItem('goodHusbandDB_v11', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB, gasUrl: this.gasUrl })); },
-        loadData() { 
-            let data = localStorage.getItem('goodHusbandDB_v11') || localStorage.getItem('goodHusbandDB_v9') || localStorage.getItem('goodHusbandDB_v7'); 
-            if (data) { 
-                let p = JSON.parse(data); 
-                this.inventory = p.inventory || []; 
-                this.expenses = p.expenses || []; 
-                this.apiKey = p.apiKey || ''; 
-                this.gasUrl = p.gasUrl || ''; 
-                if(p.companyDB) {
-                    this.companyDB = p.companyDB;
-                    for(let key in this.companyDB) {
-                        this.companyDB[key] = this.companyDB[key].map(item => {
-                            return (typeof item === 'string') ? { name: item, address: '', mapUrl: '' } : item;
-                        });
-                    }
-                }
-            } 
-        },
+        loadData() { let data = localStorage.getItem('goodHusbandDB_v11') || localStorage.getItem('goodHusbandDB_v9'); if (data) { let p = JSON.parse(data); this.inventory = p.inventory || []; this.expenses = p.expenses || []; this.apiKey = p.apiKey || ''; this.gasUrl = p.gasUrl || ''; if(p.companyDB) { this.companyDB = p.companyDB; for(let key in this.companyDB) { this.companyDB[key] = this.companyDB[key].map(item => { return (typeof item === 'string') ? { name: item, address: '', mapUrl: '' } : item; }); } } } },
         saveSettings() { this.saveData(); this.showToast('設定已儲存！'); }, getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
-        
         async syncCloud(action, type) {
             if(!this.gasUrl) return this.showToast("請先設定 GAS URL", 'warning');
             this.isLoading = true; this.loadingMessage = action === 'backup' ? '正在備份...' : '正在還原...';
             const targetUrl = `${this.gasUrl}${this.gasUrl.includes('?') ? '&' : '?'}sheet=${type}`;
             try {
-                if (action === 'backup') {
-                    const dataTo = type === 'inventory' ? this.inventory : this.expenses;
-                    await fetch(targetUrl, { method: 'POST', body: JSON.stringify(dataTo) }).then(res => res.json()).then(data => { if(data.status === 'success') this.showToast(`✅ ${type==='inventory'?'庫存':'帳單'}備份成功！`); else throw new Error(data.message); });
-                } else {
-                    await fetch(targetUrl).then(res => res.json()).then(data => { if(Array.isArray(data)) { if(type === 'inventory') { this.inventory = data.map(i => ({...i, latestPrice: parseFloat(i.latestPrice)||0, stock: parseFloat(i.stock)||0 })); } else { this.expenses = data.map(e => ({...e, amount: parseFloat(e.amount)||0, items: typeof e.items === 'string' ? JSON.parse(e.items) : (e.items || []) })); } this.saveData(); this.showToast(`✅ 還原成功，共 ${data.length} 筆`); } });
-                }
+                if (action === 'backup') { const dataTo = type === 'inventory' ? this.inventory : this.expenses; await fetch(targetUrl, { method: 'POST', body: JSON.stringify(dataTo) }).then(res => res.json()).then(data => { if(data.status === 'success') this.showToast(`✅ ${type==='inventory'?'庫存':'帳單'}備份成功！`); else throw new Error(data.message); }); } 
+                else { await fetch(targetUrl).then(res => res.json()).then(data => { if(Array.isArray(data)) { if(type === 'inventory') { this.inventory = data.map(i => ({...i, latestPrice: parseFloat(i.latestPrice)||0, stock: parseFloat(i.stock)||0 })); } else { this.expenses = data.map(e => ({...e, amount: parseFloat(e.amount)||0, items: typeof e.items === 'string' ? JSON.parse(e.items) : (e.items || []) })); } this.saveData(); this.showToast(`✅ 還原成功，共 ${data.length} 筆`); } }); }
             } catch (e) { this.showToast("操作失敗: " + e.message, 'danger'); } finally { this.isLoading = false; }
         },
-        
-        copyGasCode() { const code = `function doGet(e){return handleRequest(e);}function doPost(e){return handleRequest(e);}function handleRequest(e){var lock=LockService.getScriptLock();lock.tryLock(10000);try{var ss=SpreadsheetApp.getActiveSpreadsheet();var sheetName=e.parameter.sheet||'inventory';var sheet=ss.getSheetByName(sheetName);if(!sheet){sheet=ss.insertSheet(sheetName);}if(e.postData){var data=JSON.parse(e.postData.contents);if(!Array.isArray(data)||data.length===0){sheet.clear();return responseJSON({status:'success',message:'已清空資料表'});}var headers=Object.keys(data[0]);var rows=data.map(function(row){return headers.map(function(key){var val=row[key];if(typeof val==='object'&&val!==null){return JSON.stringify(val);}return String(val||"");});});sheet.clear();sheet.getRange(1,1,1,headers.length).setValues([headers]);if(rows.length>0){sheet.getRange(2,1,rows.length,headers.length).setValues(rows);}return responseJSON({status:'success',message:'備份成功'});}else{var dataRange=sheet.getDataRange();var values=dataRange.getValues();if(values.length<2){return responseJSON([]);}var headers=values.shift();var result=values.map(function(row){var obj={};headers.forEach(function(header,index){var cellValue=row[index];try{if(typeof cellValue==='string'&&(cellValue.startsWith('[')||cellValue.startsWith('{'))){obj[header]=JSON.parse(cellValue);}else{obj[header]=cellValue;}}catch(e){obj[header]=cellValue;}});return obj;});return responseJSON(result);}}catch(e){return responseJSON({status:'error',message:String(e)});}finally{lock.releaseLock();}}function responseJSON(data){return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);}`; navigator.clipboard.writeText(code).then(() => this.showToast("代碼已複製！", 'success')); },
-        
         toggleSort(key) { if(this.colSortKey===key){this.colSortOrder=this.colSortOrder==='asc'?'desc':'asc';}else{this.colSortKey=key;this.colSortOrder='asc';} },
         getSortIcon(key) { if(this.colSortKey!==key) return 'bi-arrow-down-up text-muted'; return this.colSortOrder==='asc'?'bi-arrow-up text-primary':'bi-arrow-down text-primary'; },
         toggleSelectAllInventory() { if (this.isAllInventorySelected) { this.selectedIds = []; } else { this.selectedIds = this.filteredInventory.map(i => i.id); } },
