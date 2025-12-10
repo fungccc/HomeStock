@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>好男人智慧家居 v9.0</title>
+    <title>好男人智慧家居 v9.2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
@@ -47,12 +47,18 @@
         .trend-up { color: #dc3545; }
         .trend-down { color: #198754; }
         .app-footer { position: fixed; bottom: 5px; left: 0; width: 100%; text-align: center; color: #adb5bd; font-size: 0.7rem; z-index: 50; pointer-events: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.5px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(2px); }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v9.0</h4>
+    <div v-if="isLoading" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2 fw-bold text-primary">{{ loadingMessage }}</div>
+    </div>
+
+    <h4 class="mb-3 text-center fw-bold">👨‍💼 好男人智慧家居 v9.2</h4>
 
     <ul class="nav nav-pills mb-3 justify-content-center nav-justified bg-white p-1 rounded shadow-sm">
         <li class="nav-item"><a class="nav-link" :class="{active: currentTab === 'inventory'}" @click="currentTab = 'inventory'" href="#">📦 物品管理</a></li>
@@ -62,143 +68,39 @@
 
     <div v-if="currentTab === 'inventory'">
         <div v-if="showAiImportPanel" class="card mb-3 import-receiver" ref="inventoryPanel">
-            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-box-arrow-in-down"></i> 步驟 2: 請貼上 JSON</span>
-                <button @click="showAiImportPanel = false" class="btn-close btn-sm"></button>
-            </div>
-            <div class="card-body">
-                <textarea ref="inventoryPasteRef" v-model="importJsonText" class="form-control mb-2" rows="4" placeholder="請長按貼上..."></textarea>
-                <div class="d-flex gap-2">
-                    <button @click="testInventoryJson" class="btn btn-outline-secondary btn-sm" style="width: 30%">測試範本</button>
-                    <button @click="processImportData" class="btn btn-warning fw-bold flex-grow-1">分析並匯入</button>
-                </div>
-            </div>
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center"><span><i class="bi bi-box-arrow-in-down"></i> 步驟 2: 請貼上 JSON</span><button @click="showAiImportPanel = false" class="btn-close btn-sm"></button></div>
+            <div class="card-body"><textarea ref="inventoryPasteRef" v-model="importJsonText" class="form-control mb-2" rows="4" placeholder="請長按貼上..."></textarea><div class="d-flex gap-2"><button @click="testInventoryJson" class="btn btn-outline-secondary btn-sm" style="width: 30%">測試範本</button><button @click="processImportData" class="btn btn-warning fw-bold flex-grow-1">分析並匯入</button></div></div>
         </div>
 
         <div class="card p-3 mb-3 sticky-top" style="z-index: 900; background: rgba(255,255,255,0.98);">
-            <div class="d-flex gap-2 mb-2">
-                <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input v-model="searchQuery" type="text" class="form-control" placeholder="搜尋名稱..."></div>
-                <button @click="openAiInventoryModal" class="btn ai-action-btn text-white rounded-circle shadow" style="width: 40px; height: 40px; padding: 0;"><i class="bi bi-robot"></i></button>
-            </div>
-            
+            <div class="d-flex gap-2 mb-2"><div class="search-box flex-grow-1"><i class="bi bi-search"></i><input v-model="searchQuery" type="text" class="form-control" placeholder="搜尋名稱..."></div><button @click="openAiInventoryModal" class="btn ai-action-btn text-white rounded-circle shadow" style="width: 40px; height: 40px; padding: 0;"><i class="bi bi-robot"></i></button></div>
             <div class="row g-2 mb-2">
-                <div class="col-4">
-                    <select v-model="filterCategory" class="form-select form-select-sm">
-                        <option value="">所有類別</option>
-                        <option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option>
-                    </select>
-                </div>
-                <div class="col-4">
-                    <select v-model="filterBrand" class="form-select form-select-sm">
-                        <option value="">所有品牌</option>
-                        <option v-for="b in uniqueBrands" :value="b">{{ b }}</option>
-                    </select>
-                </div>
-                <div class="col-4">
-                    <select v-model="sortOption" class="form-select form-select-sm">
-                        <option value="default">默認排序</option>
-                        <option value="stock_asc">庫存: 少→多</option>
-                        <option value="stock_desc">庫存: 多→少</option>
-                    </select>
-                </div>
+                <div class="col-4"><select v-model="filterCategory" class="form-select form-select-sm"><option value="">所有類別</option><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div>
+                <div class="col-4"><select v-model="filterBrand" class="form-select form-select-sm"><option value="">所有品牌</option><option v-for="b in uniqueBrands" :value="b">{{ b }}</option></select></div>
+                <div class="col-4"><select v-model="sortOption" class="form-select form-select-sm"><option value="default">默認排序</option><option value="stock_asc">庫存: 少→多</option><option value="stock_desc">庫存: 多→少</option></select></div>
             </div>
-
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="small text-muted">共 {{ filteredInventory.length }} 項</span>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="selectAllInv" :checked="isAllInventorySelected" @click="toggleSelectAllInventory">
-                    <label class="form-check-label small text-muted" for="selectAllInv">全選結果</label>
-                </div>
-            </div>
+            <div class="d-flex justify-content-between align-items-center"><span class="small text-muted">共 {{ filteredInventory.length }} 項</span><div class="form-check"><input class="form-check-input" type="checkbox" id="selectAllInv" :checked="isAllInventorySelected" @click="toggleSelectAllInventory"><label class="form-check-label small text-muted" for="selectAllInv">全選結果</label></div></div>
         </div>
 
-        <div class="card p-0 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-3 sortable-header" @click="toggleSort('name')">
-                                物品資訊 <i class="bi" :class="getSortIcon('name')"></i>
-                            </th>
-                            <th class="text-center sortable-header" style="min-width: 90px;" @click="toggleSort('stock')">
-                                庫存 <i class="bi" :class="getSortIcon('stock')"></i>
-                            </th>
-                            <th class="text-center" style="width: 40px;">選</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="item in filteredInventory" :key="item.id" :class="{'table-active': isSelected(item)}">
-                            <td class="ps-3 py-3" @click="toggleSelection(item)">
-                                <div class="mb-1">
-                                    <span class="category-tag">{{ getCategoryName(item.categoryId) }}</span>
-                                    <span v-if="item.brand" class="brand-tag">{{ item.brand }}</span>
-                                </div>
-                                <div>
-                                    <span class="item-name">{{ item.name }}</span>
-                                    <a v-if="item.url" :href="item.url" target="_blank" class="link-icon ms-1" @click.stop><i class="bi bi-box-arrow-up-right"></i></a>
-                                </div>
-                                <div class="info-row">
-                                    <span class="price-tag">{{ item.latestPrice ? '$'+item.latestPrice : '' }}</span>
-                                    <span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span>
-                                </div>
-                            </td>
-                            <td class="text-center align-middle">
-                                <div class="btn-group btn-group-sm">
-                                    <button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-2">-</button>
-                                    <button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:30px">{{ item.stock }}</button>
-                                    <button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-2">+</button>
-                                </div>
-                            </td>
-                            <td class="text-center align-middle" @click="toggleSelection(item)">
-                                <input type="checkbox" class="form-check-input" :checked="isSelected(item)">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
+        <div class="card p-0 overflow-hidden"><div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light"><tr><th class="ps-3 sortable-header" @click="toggleSort('name')">物品資訊 <i class="bi" :class="getSortIcon('name')"></i></th><th class="text-center sortable-header" style="min-width: 90px;" @click="toggleSort('stock')">庫存 <i class="bi" :class="getSortIcon('stock')"></i></th><th class="text-center" style="width: 40px;">選</th></tr></thead><tbody><tr v-for="item in filteredInventory" :key="item.id" :class="{'table-active': isSelected(item)}"><td class="ps-3 py-3" @click="toggleSelection(item)"><div class="mb-1"><span class="category-tag">{{ getCategoryName(item.categoryId) }}</span><span v-if="item.brand" class="brand-tag">{{ item.brand }}</span></div><div><span class="item-name">{{ item.name }}</span><a v-if="item.url" :href="item.url" target="_blank" class="link-icon ms-1" @click.stop><i class="bi bi-box-arrow-up-right"></i></a></div><div class="info-row"><span class="price-tag">{{ item.latestPrice ? '$'+item.latestPrice : '' }}</span><span class="unit-price" v-if="item.unitPrice">({{ item.unitPrice }})</span></div></td><td class="text-center align-middle"><div class="btn-group btn-group-sm"><button @click.stop="updateStock(item, -1)" class="btn btn-outline-secondary px-2">-</button><button class="btn btn-light disabled text-dark fw-bold border-top border-bottom px-0" style="width:30px">{{ item.stock }}</button><button @click.stop="updateStock(item, 1)" class="btn btn-outline-success px-2">+</button></div></td><td class="text-center align-middle" @click="toggleSelection(item)"><input type="checkbox" class="form-check-input" :checked="isSelected(item)"></td></tr></tbody></table></div></div>
         <div v-if="selectedItems.length === 0" style="position: fixed; bottom: 35px; right: 25px; z-index: 999;"><button @click="openAddModal" class="btn btn-primary rounded-circle shadow p-0" style="width: 56px; height: 56px; font-size: 24px;"><i class="bi bi-plus-lg"></i></button></div>
-        
-        <div v-if="selectedItems.length > 0" class="floating-bar">
-            <button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button>
-            <button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button>
-            <button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button>
-            <button @click="prepareExport('copy')" class="floating-btn"><i class="bi bi-clipboard"></i> 複製</button>
-            <button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button>
-        </div>
+        <div v-if="selectedItems.length > 0" class="floating-bar"><button @click="actionEdit" class="floating-btn" :class="{disabled: selectedItems.length > 1}"><i class="bi bi-pencil-square"></i> 編輯</button><button @click="prepareExport('whatsapp')" class="floating-btn text-success"><i class="bi bi-whatsapp"></i> WA</button><button @click="prepareExport('share')" class="floating-btn text-primary"><i class="bi bi-share-fill"></i> 分享</button><button @click="prepareExport('copy')" class="floating-btn"><i class="bi bi-clipboard"></i> 複製</button><button @click="actionDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button></div>
     </div>
 
     <div v-if="currentTab === 'expenses'">
         <div v-if="showAiReceiptPanel" class="card mb-3 import-receiver" ref="receiptPanel">
             <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center"><span><i class="bi bi-receipt"></i> 步驟 2: 貼上單據 JSON</span><button @click="showAiReceiptPanel = false" class="btn-close btn-sm"></button></div>
-            <div class="card-body">
-                <textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="請長按貼上..."></textarea>
-                <div class="d-flex gap-2">
-                    <button @click="testReceiptJson" class="btn btn-outline-secondary btn-sm" style="width: 30%">測試範本</button>
-                    <button @click="processReceiptJson" class="btn btn-warning fw-bold flex-grow-1">解析並填入表單</button>
-                </div>
-            </div>
+            <div class="card-body"><textarea ref="receiptPasteRef" v-model="receiptJsonText" class="form-control mb-2" rows="5" placeholder="請長按貼上..."></textarea><div class="d-flex gap-2"><button @click="testReceiptJson" class="btn btn-outline-secondary btn-sm" style="width: 30%">測試範本</button><button @click="processReceiptJson" class="btn btn-warning fw-bold flex-grow-1">解析並填入</button></div></div>
         </div>
 
         <div class="card p-3 mb-3 border-primary" ref="expenseFormCard">
-            <h5 class="text-primary fw-bold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-cart-plus"></i> {{ isEditingExpense ? '編輯紀錄' : '新增支出' }}</span>
-                <div><button v-if="!isEditingExpense" @click="openAiReceiptModal" class="btn btn-sm ai-action-btn rounded-pill px-3 me-1"><i class="bi bi-camera"></i> AI 掃單</button><button v-if="isEditingExpense" @click="cancelEditExpense" class="btn btn-sm btn-outline-secondary">取消</button></div>
-            </h5>
+            <h5 class="text-primary fw-bold d-flex justify-content-between align-items-center"><span><i class="bi bi-cart-plus"></i> {{ isEditingExpense ? '編輯紀錄' : '新增支出' }}</span><div><button v-if="!isEditingExpense" @click="openAiReceiptModal" class="btn btn-sm ai-action-btn rounded-pill px-3 me-1"><i class="bi bi-camera"></i> AI 掃單</button><button v-if="isEditingExpense" @click="cancelEditExpense" class="btn btn-sm btn-outline-secondary">取消</button></div></h5>
             <div class="row g-2">
                 <div class="col-6"><label class="small text-muted">日期</label><input v-model="newExpense.date" type="date" class="form-control"></div>
                 <div class="col-6"><label class="small text-muted">類別</label><select v-model="newExpense.category" class="form-select" @change="onCategoryChange"><option v-for="(brands, cat) in companyDB" :value="cat">{{ cat }}</option><option value="其他">其他</option></select></div>
                 <div class="col-12"><label class="small text-muted">店鋪 / 公司</label><div class="input-group"><select v-model="selectedStore" class="form-select"><option v-for="store in currentCompanyOptions" :value="store.name">{{ store.name }}</option><option value="other">＋ 新增...</option></select><input v-if="selectedStore === 'other'" v-model="customStoreInput" type="text" class="form-control" placeholder="輸入名稱"></div></div>
                 <div class="col-12"><div class="row g-2"><div class="col-8"><input v-model="newExpense.address" class="form-control form-control-sm text-muted" placeholder="📍 地址 (AI自動填寫)" @input="autoGenerateMapUrl"></div><div class="col-4"><input v-model="newExpense.mapUrl" class="form-control form-control-sm text-primary" placeholder="🗺️ Link"></div></div></div>
-                <div class="col-12 mt-2">
-                    <div class="bg-light p-2 rounded border">
-                        <div class="d-flex justify-content-between align-items-center mb-2"><label class="small fw-bold mb-0"><i class="bi bi-bag"></i> 明細</label><button v-if="isShoppingCategory" @click="addCartItemManual" class="btn btn-xs btn-outline-secondary">+ 手動加入</button></div>
-                        <div v-if="isShoppingCategory" class="input-group mb-2"><select v-model="selectedInventoryItem" class="form-select form-select-sm"><option :value="null">-- 從庫存選擇 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select><input v-model.number="tempQty" type="number" class="form-control form-select-sm" placeholder="量" style="max-width: 60px;" min="1"><button @click="addCartItem" class="btn btn-sm btn-primary" :disabled="!selectedInventoryItem">加入</button></div>
-                        <div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 60px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div></div></div>
-                        <div v-if="(!newExpense.items || newExpense.items.length===0) && isShoppingCategory" class="text-center text-muted small py-2">暫無明細</div>
-                    </div>
-                </div>
+                <div class="col-12 mt-2"><div class="bg-light p-2 rounded border"><div class="d-flex justify-content-between align-items-center mb-2"><label class="small fw-bold mb-0"><i class="bi bi-bag"></i> 明細</label><button v-if="isShoppingCategory" @click="addCartItemManual" class="btn btn-xs btn-outline-secondary">+ 手動加入</button></div><div v-if="isShoppingCategory" class="input-group mb-2"><select v-model="selectedInventoryItem" class="form-select form-select-sm"><option :value="null">-- 從庫存選擇 --</option><option v-for="item in inventory" :value="item">{{ item.name }} (${{item.latestPrice}})</option></select><input v-model.number="tempQty" type="number" class="form-control form-select-sm" placeholder="量" style="max-width: 60px;" min="1"><button @click="addCartItem" class="btn btn-sm btn-primary" :disabled="!selectedInventoryItem">加入</button></div><div v-if="newExpense.items && newExpense.items.length > 0"><div v-for="(cartItem, idx) in newExpense.items" :key="idx" class="cart-item d-flex justify-content-between align-items-center"><div style="flex-grow: 1;"><div>{{ cartItem.name }}</div><div class="small text-muted">{{ cartItem.brand }} | ${{ cartItem.price }} x {{ cartItem.qty }}</div></div><div class="text-end" style="min-width: 60px;"><span class="fw-bold">${{ (cartItem.price * cartItem.qty).toFixed(1) }}</span><i @click="removeCartItem(idx)" class="bi bi-x text-danger ms-2" style="cursor:pointer"></i></div></div></div><div v-if="(!newExpense.items || newExpense.items.length===0) && isShoppingCategory" class="text-center text-muted small py-2">暫無明細</div></div></div>
                 <div v-if="!isShoppingCategory" class="col-12 mt-2"><label class="small text-muted fw-bold">帳單原額</label><input v-model.number="newExpense.subtotal" type="number" class="form-control" placeholder="輸入金額"></div>
                 <div class="col-12 mt-2"><div class="cart-summary border p-2 rounded bg-white"><div class="row g-2 align-items-center"><div class="col-5"><label class="small text-muted">折扣優惠</label><div class="input-group input-group-sm"><span class="input-group-text">-$</span><input v-model.number="newExpense.discount" type="number" class="form-control" placeholder="0"></div></div><div class="col-7 text-end"><label class="small text-muted d-block">實付金額 (Final)</label><input v-model.number="newExpense.amount" type="number" class="form-control fw-bold text-danger text-end fs-5" readonly></div></div></div></div>
                 <div class="col-12"><label class="small text-muted">備註/單號</label><input v-model="newExpense.refNumber" class="form-control" placeholder="選填"></div>
@@ -207,77 +109,47 @@
         </div>
         
         <div class="card p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">帳單列表</h5>
-                <button @click="showMonthlySummary" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-check"></i> 統計</button>
-            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">帳單列表</h5><button @click="showMonthlySummary" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-check"></i> 統計</button></div>
             <div class="search-box mb-3"><i class="bi bi-search"></i><input v-model="expenseSearchQuery" type="text" class="form-control" placeholder="搜尋店名、備註或金額..."></div>
-            
-            <div class="table-responsive">
-                <table class="table table-striped table-sm text-nowrap align-middle">
-                    <thead>
-                        <tr>
-                            <th @click="toggleExpenseSort('date')" class="sortable-header">日期 <i class="bi" :class="getExpenseSortIcon('date')"></i></th>
-                            <th>類別/公司</th>
-                            <th>金額</th>
-                            <th class="text-center" style="width: 40px;">選</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="exp in filteredExpenses" :key="exp.id" :class="{'table-active': isExpenseSelected(exp)}">
-                            <td @click="toggleExpenseSelection(exp)"><div>{{ exp.date }}</div></td>
-                            <td @click="toggleExpenseSelection(exp)">
-                                <span class="badge bg-light text-dark border">{{ exp.category }}</span>
-                                <div class="fw-bold text-primary small mt-1">
-                                    {{ exp.note }}
-                                    <a v-if="exp.mapUrl" :href="exp.mapUrl" target="_blank" class="map-btn" @click.stop><i class="bi bi-geo-alt-fill"></i></a>
-                                </div>
-                            </td>
-                            <td class="fw-bold" @click="toggleExpenseSelection(exp)">${{ exp.amount }}</td>
-                            <td class="text-center" @click="toggleExpenseSelection(exp)">
-                                <input type="checkbox" class="form-check-input" :checked="isExpenseSelected(exp)">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="table-responsive"><table class="table table-striped table-sm text-nowrap align-middle"><thead><tr><th @click="toggleExpenseSort('date')" class="sortable-header">日期 <i class="bi" :class="getExpenseSortIcon('date')"></i></th><th>類別/公司</th><th>金額</th><th class="text-center" style="width: 40px;">選</th></tr></thead><tbody><tr v-for="exp in filteredExpenses" :key="exp.id" :class="{'table-active': isExpenseSelected(exp)}"><td @click="toggleExpenseSelection(exp)"><div>{{ exp.date }}</div></td><td @click="toggleExpenseSelection(exp)"><span class="badge bg-light text-dark border">{{ exp.category }}</span><div class="fw-bold text-primary small mt-1">{{ exp.note }} <a v-if="exp.mapUrl" :href="exp.mapUrl" target="_blank" class="map-btn" @click.stop><i class="bi bi-geo-alt-fill"></i></a></div></td><td class="fw-bold" @click="toggleExpenseSelection(exp)">${{ exp.amount }}</td><td class="text-center" @click="toggleExpenseSelection(exp)"><input type="checkbox" class="form-check-input" :checked="isExpenseSelected(exp)"></td></tr></tbody></table></div>
         </div>
-
-        <div v-if="selectedExpenseIds.length > 0" class="floating-bar">
-            <button @click="actionExpenseDetail" class="floating-btn" :class="{disabled: selectedExpenseIds.length > 1}"><i class="bi bi-file-text"></i> 明細</button>
-            <button @click="actionExpenseEdit" class="floating-btn" :class="{disabled: selectedExpenseIds.length > 1}"><i class="bi bi-pencil"></i> 編輯</button>
-            <button @click="actionExpenseDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button>
-        </div>
+        
+        <div v-if="selectedExpenseIds.length > 0" class="floating-bar"><button @click="actionExpenseDetail" class="floating-btn" :class="{disabled: selectedExpenseIds.length > 1}"><i class="bi bi-file-text"></i> 明細</button><button @click="actionExpenseEdit" class="floating-btn" :class="{disabled: selectedExpenseIds.length > 1}"><i class="bi bi-pencil"></i> 編輯</button><button @click="actionExpenseDelete" class="floating-btn text-danger"><i class="bi bi-trash"></i> 刪除</button></div>
     </div>
 
     <div v-if="currentTab === 'settings'">
+        <div class="card p-3 mb-3 border-info">
+            <h5 class="text-primary"><i class="bi bi-cloud-check"></i> Google Sheets 雲端同步</h5>
+            <div class="mb-3"><label class="small text-muted">GAS URL</label><input v-model="gasUrl" type="password" class="form-control form-control-sm" placeholder="https://script.google.com/..."></div>
+            <div class="d-grid gap-2"><div class="btn-group"><button @click="syncCloud('backup','inventory')" class="btn btn-primary btn-sm">備份庫存</button><button @click="syncCloud('restore','inventory')" class="btn btn-outline-primary btn-sm">還原庫存</button></div><div class="btn-group"><button @click="syncCloud('backup','expenses')" class="btn btn-success btn-sm">備份帳單</button><button @click="syncCloud('restore','expenses')" class="btn btn-outline-success btn-sm">還原帳單</button></div></div>
+            <div class="mt-2 text-center"><span class="text-primary small" style="cursor:pointer; text-decoration: underline;" @click="showDeployGuide=!showDeployGuide">{{ showDeployGuide?'收起教學':'部署教學' }}</span></div>
+            <div v-if="showDeployGuide" class="alert alert-light border mt-2 small text-muted"><ol class="ps-3 mb-0"><li>建立 Sheet: <b>HomeStock_DB</b></li><li>Apps Script 貼代碼</li><li>部署為 Web App (Me/Anyone)</li></ol></div>
+        </div>
         <div class="card p-3 mb-3"><h5>🔑 Gemini API Key</h5><input v-model="apiKey" type="password" class="form-control mb-2" placeholder="API Key"><button @click="saveSettings" class="btn btn-success w-100">儲存</button></div>
         <div class="card p-3"><h5>💾 資料庫管理</h5><div class="row g-2 mb-3"><div class="col-12"><button @click="prepareFileExport('json')" class="btn btn-outline-primary w-100 settings-btn"><i class="bi bi-cloud-download"></i> <div><b>完整備份 (JSON)</b><br><span class="small">包含所有資料與設定</span></div></button></div><div class="col-12"><hr class="my-1"></div><div class="col-6"><button @click="prepareFileExport('inventory_csv')" class="btn btn-outline-success w-100 settings-btn"><i class="bi bi-file-earmark-spreadsheet"></i> <div><b>匯出庫存CSV</b></div></button></div><div class="col-6"><button @click="prepareFileExport('expense_csv')" class="btn btn-outline-info w-100 settings-btn"><i class="bi bi-file-earmark-text"></i> <div><b>匯出紀錄列表</b></div></button></div></div><label class="form-label fw-bold">📥 資料還原/匯入</label><input type="file" ref="fileInput" @change="handleFileImport" style="display:none" accept=".json,.csv"><div class="d-grid gap-2"><button @click="triggerImport('json')" class="btn btn-light border text-start"><i class="bi bi-arrow-counterclockwise"></i> 還原完整備份 (.json)</button><button @click="triggerImport('inventory_csv')" class="btn btn-light border text-start"><i class="bi bi-box-seam"></i> 匯入庫存 CSV</button><button @click="triggerImport('expense_csv')" class="btn btn-light border text-start"><i class="bi bi-card-list"></i> 匯入紀錄列表 CSV</button></div></div>
     </div>
 
     <div class="app-footer">豐狂出品 • 智慧管家</div>
 
-    <div v-if="showAiInventoryModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI = 'gemini'" type="button" class="btn btn-sm" :class="selectedAI === 'gemini' ? 'btn-primary' : 'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" type="button" class="btn btn-sm" :class="selectedAI === 'grok' ? 'btn-dark' : 'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" type="button" class="btn btn-sm" :class="selectedAI === 'chatgpt' ? 'btn-success' : 'btn-outline-success'">ChatGPT</button></div><p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p><textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea><div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div><div v-if="stagedItems.length > 0" class="mt-3 border-top pt-3"><h6 class="fw-bold">預覽結果 ({{ stagedItems.length }})</h6><div v-for="(item, idx) in stagedItems" :key="idx" class="card mb-2 preview-card bg-light"><div class="card-body p-2"><input v-model="item.name" class="form-control form-control-sm mb-1 fw-bold"><div class="row g-1"><div class="col-4"><input v-model.number="item.latestPrice" type="number" class="form-control form-control-sm"></div><div class="col-4"><input v-model="item.brand" class="form-control form-control-sm" placeholder="品牌"></div><div class="col-4"><input v-model="item.unitPrice" class="form-control form-control-sm" placeholder="單位"></div></div></div></div><button @click="confirmStagedImport" class="btn btn-success w-100">確認入庫</button></div></div></div></div></div>
-    
-    <div v-if="showAiReceiptModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3"><button @click="selectedAI = 'gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI = 'grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI = 'chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button><div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div></div></div></div></div>
-    
-    <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length === 0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
-    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> 警告：資料庫空白！</h5></div><div class="modal-body"><p class="fw-bold">您現在可能是在 App 的內部瀏覽器中。</p><p>請點擊瀏覽器圖示 🧭，選擇 <b>「在 Safari/Chrome 開啟」</b>。</p></div><div class="modal-footer"><button @click="showLostDataWarning = false" class="btn btn-secondary">關閉</button></div></div></div></div>
-    <div v-if="showFileExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">📤 檔案輸出</h5><button @click="showFileExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-3"><button @click="executeExport('share')" class="btn btn-lg btn-success text-start"><i class="bi bi-whatsapp me-2"></i> <b>系統分享</b></button><button @click="executeExport('download')" class="btn btn-lg btn-outline-secondary text-start"><i class="bi bi-download me-2"></i> <b>下載檔案</b></button></div></div></div></div>
-    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal = false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
-    <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal = false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div v-if="viewingOrder.address" class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> {{ viewingOrder.address }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
+    <div v-if="showAiInventoryModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-primary text-white"><h5 class="modal-title">🤖 智能物品入庫</h5><button @click="showAiInventoryModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3" role="group"><button @click="selectedAI='gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI='grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI='chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><p class="small text-muted">貼上商品文字或點擊下方按鈕去拍照：</p><textarea v-model="pastedText" class="form-control mb-2" rows="2" placeholder="例: 惠康 維他奶 $20..."></textarea><div class="d-grid gap-2"><button @click="copyAndOpenAI('text')" class="btn btn-outline-secondary">📝 文字指令</button><button @click="copyAndOpenAI('image')" class="btn btn-primary">📸 讀圖指令</button></div><div v-if="stagedItems.length>0" class="mt-3 border-top pt-3"><h6 class="fw-bold">預覽結果 ({{stagedItems.length}})</h6><div v-for="(item,idx) in stagedItems" :key="idx" class="card mb-2 preview-card bg-light"><div class="card-body p-2"><input v-model="item.name" class="form-control form-control-sm mb-1 fw-bold"><div class="row g-1"><div class="col-4"><input v-model.number="item.latestPrice" type="number" class="form-control form-control-sm"></div><div class="col-4"><input v-model="item.brand" class="form-control form-control-sm" placeholder="品牌"></div><div class="col-4"><input v-model="item.unitPrice" class="form-control form-control-sm" placeholder="單位"></div></div></div></div><button @click="confirmStagedImport" class="btn btn-success w-100">確認入庫</button></div></div></div></div></div>
+    <div v-if="showAiReceiptModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-gradient bg-success text-white"><h5 class="modal-title">🧾 AI 單據掃描</h5><button @click="showAiReceiptModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body"><div class="btn-group w-100 mb-3"><button @click="selectedAI='gemini'" class="btn btn-sm" :class="selectedAI==='gemini'?'btn-primary':'btn-outline-primary'">Gemini</button><button @click="selectedAI='grok'" class="btn btn-sm" :class="selectedAI==='grok'?'btn-dark':'btn-outline-dark'">Grok</button><button @click="selectedAI='chatgpt'" class="btn btn-sm" :class="selectedAI==='chatgpt'?'btn-success':'btn-outline-success'">ChatGPT</button></div><button @click="copyReceiptPrompt" class="btn btn-success w-100 py-2 fw-bold"><i class="bi bi-camera-fill"></i> 複製指令並掃描單據</button><div class="small text-muted mt-2 text-center">跳轉後請上傳單據照片，複製 JSON 後按返回連結。</div></div></div></div></div>
+    <div v-if="showMonthlyModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="bi bi-calendar3"></i> 每月支出統計</h5><button @click="showMonthlyModal = false" class="btn-close btn-close-white"></button></div><div class="modal-body p-0"><table class="table table-striped mb-0 text-center"><thead class="table-light"><tr><th>月份</th><th>總支出</th></tr></thead><tbody><tr v-for="stat in monthlyStats" :key="stat.month"><td>{{ stat.month }}</td><td class="fw-bold text-danger">${{ stat.total.toLocaleString() }}</td></tr><tr v-if="monthlyStats.length===0"><td colspan="2" class="py-3">暫無資料</td></tr></tbody></table></div></div></div></div>
+    <div v-if="showLostDataWarning" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 2000;"><div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger"><div class="modal-header bg-danger text-white"><h5 class="modal-title">警告：資料庫空白！</h5></div><div class="modal-body"><p>您可能在 App 內部瀏覽器中。請用 Safari/Chrome 開啟。</p></div><div class="modal-footer"><button @click="showLostDataWarning=false" class="btn btn-secondary">關閉</button></div></div></div></div>
+    <div v-if="showFileExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">📤 檔案輸出</h5><button @click="showFileExportModal=false" class="btn-close"></button></div><div class="modal-body d-grid gap-3"><button @click="executeExport('share')" class="btn btn-lg btn-success text-start"><i class="bi bi-whatsapp me-2"></i> <b>系統分享</b></button><button @click="executeExport('download')" class="btn btn-lg btn-outline-secondary text-start"><i class="bi bi-download me-2"></i> <b>下載檔案</b></button></div></div></div></div>
+    <div v-if="showExportModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">傳送內容</h5><button @click="showExportModal=false" class="btn-close"></button></div><div class="modal-body d-grid gap-2"><button @click="confirmExport('buy')" class="btn btn-outline-primary text-start fw-bold">🛒 需購買清單</button><button @click="confirmExport('inventory')" class="btn btn-outline-success text-start fw-bold">📦 庫存清單</button><button @click="confirmExport('links')" class="btn btn-outline-info text-start fw-bold">🔗 物品連結</button></div></div></div></div>
+    <div v-if="showOrderDetailModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title">📜 訂單明細</h5><button @click="showOrderDetailModal=false" class="btn-close"></button></div><div class="modal-body p-0"><div class="p-3 border-bottom"><div class="fw-bold">{{ viewingOrder.date }} ({{ viewingOrder.category }})</div><div class="mt-1 text-primary fw-bold">{{ viewingOrder.note }}</div><div v-if="viewingOrder.address" class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> {{ viewingOrder.address }}</div></div><table class="table table-sm mb-0"><thead class="table-light"><tr><th>物品</th><th>單價 x 數量</th><th>小計</th></tr></thead><tbody><tr v-for="(itm, idx) in viewingOrder.items" :key="idx"><td>{{ itm.name }}</td><td>${{ itm.price }} x {{ itm.qty }}</td><td class="text-end pe-3">${{ (itm.price * itm.qty).toFixed(1) }}</td></tr></tbody><tfoot class="table-group-divider"><tr><td colspan="2" class="text-end fw-bold">總計:</td><td class="text-end pe-3 fw-bold text-danger">${{ viewingOrder.amount }}</td></tr></tfoot></table><div class="p-3"><button @click="editOrderFromModal" class="btn btn-outline-primary w-100">編輯此單</button></div></div></div></div></div>
     
     <div v-if="showAddModal || showEditModal" class="modal d-block" style="background: rgba(0,0,0,0.5)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">{{ showEditModal ? '編輯' : '新增' }}</h5><button @click="closeModal" class="btn-close"></button></div><div class="modal-body"><div class="row g-2 mb-2"><div class="col-6"><label class="small">分類</label><select v-model="editingForm.categoryId" class="form-select"><option v-for="cat in categories" :value="cat.id">{{ cat.name }}</option></select></div><div class="col-6"><label class="small">品牌</label><input v-model="editingForm.brand" class="form-control"></div></div><div class="mb-2"><label class="small">名稱</label><textarea v-model="editingForm.name" class="form-control" rows="2"></textarea></div><div class="row g-2 mb-2"><div class="col-4"><label class="small">庫存</label><input v-model.number="editingForm.stock" type="number" class="form-control"></div><div class="col-4"><label class="small">總價</label><input v-model.number="editingForm.latestPrice" type="number" class="form-control"></div><div class="col-4"><label class="small">單價</label><input v-model.number="editingForm.unitPrice" class="form-control"></div></div><div class="mb-2"><label class="small">網址</label><input v-model="editingForm.url" class="form-control"></div></div><div class="modal-footer"><button @click="closeModal" class="btn btn-secondary">取消</button><button @click="saveItem" class="btn btn-primary">儲存</button></div></div></div></div>
 </div>
 
 <script>
-window.onerror = function(msg, url, line, col, error) { alert("系統發生錯誤: " + msg); };
 const { createApp } = Vue;
 
 createApp({
     data() {
         return {
-            currentTab: 'inventory', geminiMode: 'app', apiKey: '', searchQuery: '',
+            currentTab: 'inventory', geminiMode: 'app', apiKey: '', searchQuery: '', gasUrl: '',
+            isLoading: false, loadingMessage: '', showDeployGuide: false,
             selectedAI: 'gemini', inventory: [], expenses: [], selectedIds: [], inputMode: 'text',
             
             showAddModal: false, showEditModal: false, showExportModal: false, showOrderDetailModal: false, showLostDataWarning: false, showMonthlyModal: false, showFileExportModal: false, showAiInventoryModal: false, showAiReceiptModal: false,
@@ -288,7 +160,6 @@ createApp({
             isWaitingForPaste: false, isWaitingForReceiptPaste: false, 
             currentImportType: '', currentExportType: '', stagedItems: [],
 
-            // v8.9 New UI Data
             filterCategory: '', filterBrand: '', sortOption: 'default',
             colSortKey: '', colSortOrder: 'asc',
             expenseSearchQuery: '', selectedExpenseIds: [],
@@ -299,15 +170,11 @@ createApp({
             isEditingExpense: false, editingExpenseIndex: -1,
 
             companyDB: { "水費": [], "電費": [], "煤氣/石油氣": [], "私家車入油": [], "寬頻": [], "電話費": [], "雲端及AI": [], "串流影片": [], "音樂串流": [], "健身會籍": [], "醫療保險": [], "按揭供款": [], "管理費": [], "超級市場": [], "飲食": [], "交通(八達通)": [], "車資": [], "網購": [] },
-            defaultCompanies: {
-                "水費": ["水務署"], "電費": ["中電", "港燈"], "煤氣/石油氣": ["Towngas", "協和", "中石化", "標準", "美孚", "蜆殼", "新海", "半島", "加德士"], "私家車入油": ["Shell", "Esso", "加德士", "中石化", "中油", "ECO"], "寬頻": ["Netvigator", "HKBN", "HGC", "i-CABLE", "CMHK"], "電話費": ["csl", "1O1O", "SmarTone", "CMHK", "3HK", "HKT", "HKBN"], "雲端及AI": ["AWS", "Azure", "GCP", "阿里雲", "ChatGPT", "Gemini", "Grok", "Perplexity", "Copilot", "MJ"], "串流影片": ["Netflix", "Disney+", "Max", "AppleTV+", "Viu", "hmvod", "NowE"], "音樂串流": ["Spotify", "AppleMusic", "KKBOX"], "健身會籍": ["PURE", "Anytime", "24/7Fitness"], "醫療保險": ["AXA", "Bupa", "Bowtie", "BlueCross", "FWD", "Manulife", "Pru"], "按揭供款": ["HSBC", "恒生", "中銀", "渣打"], "管理費": ["屋苑管理處", "物管公司"], "超級市場": ["惠康", "百佳", "AEON", "MarketPlace", "FUSION", "TASTE", "city’super", "HKTVmall"], "飲食": ["麥當勞", "大家樂", "大快活", "翠華", "Starbucks", "PacificCoffee"], "交通(八達通)": ["八達通", "MTR", "KMB", "CTB", "LWB"], "車資": ["的士", "Uber"], "網購": ["HKTVmall", "Taobao", "Tmall", "JD", "Amazon"]
-            },
-
+            defaultCompanies: { "水費": ["水務署"], "電費": ["中電", "港燈"], "超級市場": ["惠康", "百佳"], "飲食": ["麥當勞", "大家樂"] }, 
             categories: [ { id: '10', name: '食品/乾糧' }, { id: '20', name: '飲品' }, { id: '30', name: '家居清潔' }, { id: '40', name: '個人護理' }, { id: '50', name: '紙品/衛生' }, { id: '60', name: '廚房用品' }, { id: '70', name: '藥品/保健' }, { id: '99', name: '其他' } ]
         };
     },
     computed: {
-        // v8.9 Inventory Filter & Sort
         uniqueBrands() { return [...new Set(this.inventory.map(i => i.brand).filter(b => b))].sort(); },
         filteredInventory() {
             let list = this.inventory;
@@ -315,8 +182,6 @@ createApp({
             if (query) list = list.filter(i => (i.name||'').toLowerCase().includes(query) || (i.brand||'').toLowerCase().includes(query));
             if (this.filterCategory) list = list.filter(i => i.categoryId === this.filterCategory);
             if (this.filterBrand) list = list.filter(i => i.brand === this.filterBrand);
-            
-            // Sort
             if (this.colSortKey) {
                  list.sort((a, b) => {
                     let valA = a[this.colSortKey] || ''; let valB = b[this.colSortKey] || '';
@@ -325,13 +190,10 @@ createApp({
                 });
             } else if (this.sortOption === 'stock_asc') list.sort((a, b) => (a.stock || 0) - (b.stock || 0));
             else if (this.sortOption === 'stock_desc') list.sort((a, b) => (b.stock || 0) - (a.stock || 0));
-            
             return list;
         },
         isAllInventorySelected() { return this.filteredInventory.length > 0 && this.selectedIds.length === this.filteredInventory.length; },
         selectedItems() { return this.inventory.filter(item => this.selectedIds.includes(item.id)); },
-
-        // v8.9 Expense Filter & Sort
         filteredExpenses() {
             let list = this.expenses;
             const query = this.expenseSearchQuery.toLowerCase().trim();
@@ -358,16 +220,18 @@ createApp({
             this.currentTab = 'expenses'; this.showAiReceiptPanel = true; this.clearHash();
             setTimeout(() => { if (this.$refs.receiptPasteRef) { this.$refs.receiptPasteRef.focus(); this.$refs.receiptPasteRef.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 500);
         }
+        if ((this.inventory.length === 0 && this.expenses.length === 0) && params.get('openImport') === 'true') { this.showLostDataWarning = true; }
     },
     methods: {
-        saveData() { localStorage.setItem('goodHusbandDB_v7', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB })); },
+        saveData() { localStorage.setItem('goodHusbandDB_v9', JSON.stringify({ inventory: this.inventory, expenses: this.expenses, apiKey: this.apiKey, companyDB: this.companyDB, gasUrl: this.gasUrl })); },
         loadData() { 
-            let data = localStorage.getItem('goodHusbandDB_v7') || localStorage.getItem('goodHusbandDB_v5_3'); 
+            let data = localStorage.getItem('goodHusbandDB_v9') || localStorage.getItem('goodHusbandDB_v7'); 
             if (data) { 
                 let p = JSON.parse(data); 
                 this.inventory = p.inventory || []; 
                 this.expenses = p.expenses || []; 
                 this.apiKey = p.apiKey || ''; 
+                this.gasUrl = p.gasUrl || ''; 
                 if(p.companyDB) {
                     this.companyDB = p.companyDB;
                     for(let key in this.companyDB) {
@@ -379,14 +243,25 @@ createApp({
             } 
         },
         saveSettings() { this.saveData(); alert('設定已儲存！'); }, getCategoryName(id) { const c = this.categories.find(x => x.id == id); return c ? c.name : '未分類'; },
+        
+        async syncCloud(action, type) {
+            if(!this.gasUrl) return alert("請先設定 Google Apps Script URL");
+            this.isLoading = true; this.loadingMessage = action === 'backup' ? '正在備份...' : '正在還原...';
+            const targetUrl = `${this.gasUrl}${this.gasUrl.includes('?') ? '&' : '?'}sheet=${type}`;
+            try {
+                if (action === 'backup') {
+                    const dataTo = type === 'inventory' ? this.inventory : this.expenses;
+                    await fetch(targetUrl, { method: 'POST', body: JSON.stringify(dataTo) }).then(res => res.json()).then(data => { if(data.status==='success') alert('備份成功'); else throw new Error(data.message); });
+                } else {
+                    await fetch(targetUrl).then(res => res.json()).then(data => { if(Array.isArray(data)) { if(type==='inventory') this.inventory=data.map(i=>({...i,latestPrice:parseFloat(i.latestPrice)||0,stock:parseFloat(i.stock)||0})); else this.expenses=data.map(e=>({...e,amount:parseFloat(e.amount)||0,items:typeof e.items==='string'?JSON.parse(e.items):(e.items||[])})); this.saveData(); alert(`還原成功 ${data.length} 筆`); } });
+                }
+            } catch (e) { alert("操作失敗: " + e.message); } finally { this.isLoading = false; }
+        },
 
-        // --- v8.9 Inventory Actions ---
         toggleSort(key) { if(this.colSortKey===key){this.colSortOrder=this.colSortOrder==='asc'?'desc':'asc';}else{this.colSortKey=key;this.colSortOrder='asc';} },
         getSortIcon(key) { if(this.colSortKey!==key) return 'bi-arrow-down-up text-muted'; return this.colSortOrder==='asc'?'bi-arrow-up text-primary':'bi-arrow-down text-primary'; },
         toggleSelectAllInventory() { if (this.isAllInventorySelected) { this.selectedIds = []; } else { this.selectedIds = this.filteredInventory.map(i => i.id); } },
         isSelected(item) { return this.selectedIds.includes(item.id); }, toggleSelection(item) { const id = item.id; if(this.selectedIds.includes(id)) this.selectedIds=this.selectedIds.filter(i=>i!==id); else this.selectedIds.push(id); }, selectAll(doSelect) { this.selectedIds = doSelect ? this.filteredInventory.map(i => i.id) : []; },
-
-        // --- v8.9 Expense Actions ---
         toggleExpenseSort(key) { if(this.expenseSortKey===key){this.expenseSortOrder=this.expenseSortOrder==='asc'?'desc':'asc';}else{this.expenseSortKey=key;this.expenseSortOrder='asc';} },
         getExpenseSortIcon(key) { if(this.expenseSortKey!==key) return 'bi-arrow-down-up text-muted'; return this.expenseSortOrder==='asc'?'bi-arrow-up text-primary':'bi-arrow-down text-primary'; },
         isExpenseSelected(exp) { return this.selectedExpenseIds.includes(exp.id); },
@@ -395,7 +270,6 @@ createApp({
         actionExpenseEdit() { if(this.selectedExpenseIds.length!==1)return; const exp=this.expenses.find(e=>e.id===this.selectedExpenseIds[0]); this.editExpenseDirectly(exp); this.selectedExpenseIds=[]; },
         actionExpenseDelete() { if(!confirm(`確定刪除這 ${this.selectedExpenseIds.length} 筆紀錄？`))return; this.expenses=this.expenses.filter(e=>!this.selectedExpenseIds.includes(e.id)); this.selectedExpenseIds=[]; this.saveData(); },
 
-        // --- Standard Methods (Export, AI, etc.) ---
         prepareExport(type) { this.exportActionType = type; this.showExportModal = true; }, confirmExport(format) { this.showExportModal = false; let text = ""; if (format === 'buy') text = "🛒 *需購買清單*：\n" + this.selectedItems.map(i => `- ${i.name} (庫存:${i.stock})`).join('\n'); else if (format === 'inventory') text = "📦 *庫存清單*：\n" + this.selectedItems.map(i => `- ${i.name} [${i.brand||''}] | $${i.latestPrice||'-'}`).join('\n'); else if (format === 'links') text = "🔗 *物品連結*：\n" + this.selectedItems.map(i => `- ${i.name}\n  ${i.url || '無連結'}`).join('\n'); if (this.exportActionType === 'whatsapp') window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`; else if (this.exportActionType === 'share') { if (navigator.share) navigator.share({title:'庫存', text:text}); else alert("不支援分享"); } else if (this.exportActionType === 'copy') navigator.clipboard.writeText(text).then(()=>alert('已複製')); },
         clearHash() { history.replaceState(null, null, ' '); },
         openTargetAI(url) { window.open(url, "_blank"); },
