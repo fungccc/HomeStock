@@ -1,1 +1,30 @@
-test
+{
+  "inventory": [
+    {"id": "inv_001", "name": "維他奶 (原味) 250ml", "brand": "Vitasoy", "categoryId": "20", "stock": 24, "latestPrice": 3.5, "unitPrice": "每盒", "url": ""},
+    {"id": "inv_002", "name": "潔霸超濃縮洗衣液 3L", "brand": "Attack", "categoryId": "30", "stock": 2, "latestPrice": 69.9, "unitPrice": "支", "url": ""},
+    {"id": "inv_003", "name": "得寶三層衛生紙 (10卷)", "brand": "Tempo", "categoryId": "50", "stock": 3, "latestPrice": 32.0, "unitPrice": "條", "url": ""},
+    {"id": "inv_004", "name": "出前一丁 (麻油味)", "brand": "日清", "categoryId": "10", "stock": 10, "latestPrice": 4.2, "unitPrice": "包", "url": ""},
+    {"id": "inv_005", "name": "威猛先生廚房清潔劑", "brand": "Mr. Muscle", "categoryId": "30", "stock": 1, "latestPrice": 25.0, "unitPrice": "支", "url": ""},
+    {"id": "inv_006", "name": "必理痛 (特效) 20粒", "brand": "Panadol", "categoryId": "70", "stock": 1, "latestPrice": 58.0, "unitPrice": "盒", "url": ""},
+    {"id": "inv_007", "name": "滴露消毒藥水 1.2L", "brand": "Dettol", "categoryId": "40", "stock": 2, "latestPrice": 75.0, "unitPrice": "支", "url": ""},
+    {"id": "inv_008", "name": "黑白淡奶 170g", "brand": "Black & White", "categoryId": "10", "stock": 6, "latestPrice": 8.0, "unitPrice": "罐", "url": ""}
+  ],
+  "expenses": [
+    {"id": "exp_001", "date": "2025-11-01", "category": "超級市場", "amount": 235.5, "note": "惠康", "subtotal": 235.5, "discount": 0, "items": [{"name": "維他奶", "price": 3.5, "qty": 6}, {"name": "潔霸洗衣液", "price": 69.9, "qty": 1}]},
+    {"id": "exp_002", "date": "2025-11-02", "category": "飲食", "amount": 45.0, "note": "麥當勞", "subtotal": 45.0, "discount": 0, "items": []},
+    {"id": "exp_003", "date": "2025-11-05", "category": "寬頻", "amount": 168.0, "note": "HKBN", "subtotal": 168.0, "discount": 0, "items": []},
+    {"id": "exp_004", "date": "2025-11-10", "category": "交通(八達通)", "amount": 500.0, "note": "八達通自動增值", "subtotal": 500.0, "discount": 0, "items": []},
+    {"id": "exp_005", "date": "2025-11-15", "category": "電費", "amount": 850.2, "note": "中電", "subtotal": 850.2, "discount": 0, "items": []}
+  ],
+  "companyDB": {
+    "水費": [{"name": "水務署", "address": "", "mapUrl": ""}],
+    "電費": [{"name": "中電", "address": "", "mapUrl": ""}, {"name": "港燈", "address": "", "mapUrl": ""}],
+    "超級市場": [
+      {"name": "惠康", "address": "銅鑼灣記利佐治街25-29號", "mapUrl": "https://www.google.com/maps/search/?api=1&query=Wellcome+Causeway+Bay"},
+      {"name": "百佳", "address": "", "mapUrl": ""},
+      {"name": "AEON", "address": "", "mapUrl": ""}
+    ],
+    "飲食": [{"name": "麥當勞", "address": "", "mapUrl": ""}, {"name": "大家樂", "address": "", "mapUrl": ""}],
+    "交通(八達通)": [{"name": "八達通", "address": "", "mapUrl": ""}, {"name": "MTR", "address": "", "mapUrl": ""}]
+  }
+}
